@@ -1,4 +1,4 @@
-import { getPersonas } from "@/lib/personas"
+import { getPersonas } from "@/lib/data/personas"
 
 export default async function AdminPage() {
   const personas = await getPersonas()
