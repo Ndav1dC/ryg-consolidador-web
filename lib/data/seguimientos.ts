@@ -26,6 +26,40 @@ export type SeguimientoListItem = {
   } | null
 }
 
+type SeguimientoRow = {
+  id: string
+  persona_id: string
+  fecha: string | null
+  tipo: string | null
+  resultado: string | null
+  observaciones: string | null
+  paso: number | null
+  casa: string | null
+  lider: string | null
+  ministerio: string | null
+  nivel_discipulado: string | null
+  estado: string | null
+  fecha_programada: string | null
+  persona:
+    | {
+        id: string
+        nombre_completo: string
+        celular: string | null
+        barrio: string | null
+        estado_consolidacion: string | null
+        etapa_actual: number | null
+      }
+    | {
+        id: string
+        nombre_completo: string
+        celular: string | null
+        barrio: string | null
+        estado_consolidacion: string | null
+        etapa_actual: number | null
+      }[]
+    | null
+}
+
 export async function getSeguimientos(params?: {
   q?: string
   tipo?: string
@@ -66,7 +100,22 @@ export async function getSeguimientos(params?: {
     throw new Error("No se pudieron cargar los seguimientos.")
   }
 
-  let items = (data ?? []) as SeguimientoListItem[]
+  let items: SeguimientoListItem[] = ((data ?? []) as SeguimientoRow[]).map((item) => ({
+    id: item.id,
+    persona_id: item.persona_id,
+    fecha: item.fecha,
+    tipo: item.tipo,
+    resultado: item.resultado,
+    observaciones: item.observaciones,
+    paso: item.paso,
+    casa: item.casa,
+    lider: item.lider,
+    ministerio: item.ministerio,
+    nivel_discipulado: item.nivel_discipulado,
+    estado: item.estado,
+    fecha_programada: item.fecha_programada,
+    persona: Array.isArray(item.persona) ? item.persona[0] ?? null : item.persona,
+  }))
 
   if (params?.q?.trim()) {
     const value = params.q.trim().toLowerCase()
