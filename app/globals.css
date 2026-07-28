@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: only light;
+  --background: #f8f7f4;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --muted: #78716c;
+  --border: #e7e5e4;
+  --input-bg: #ffffff;
+  --input-foreground: #1c1917;
+  --input-placeholder: #a8a29e;
+  --primary: #d97706;
+  --primary-foreground: #ffffff;
 }
 
 @theme inline {
@@ -12,15 +22,65 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Formularios legibles en toda la app */
+input,
+select,
+textarea {
+  width: 100%;
+  color: var(--input-foreground);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+select {
+  color: var(--input-foreground);
+  background-color: var(--input-bg);
+  appearance: auto;
+}
+
+select option {
+  color: #1c1917;
+  background-color: #ffffff;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  color: #a8a29e;
+  background-color: #f5f5f4;
+  cursor: not-allowed;
+}
+
+button,
+a {
+  transition: 0.2s ease;
 }
