@@ -2,6 +2,8 @@ import "server-only"
 
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
+import { getCurrentUserProfile } from "@/lib/auth/get-user"
 
 export type PersonaListItem = {
   id: string
@@ -20,6 +22,8 @@ export type PersonaListItem = {
   ultima_gestion_fecha: string | null
   proximo_paso: string | null
   created_at: string
+  asignado_a_id: string | null
+  casa_avivamiento_id: string | null
 }
 
 export type PersonaDetail = PersonaListItem
@@ -52,8 +56,28 @@ function isValidUUID(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
+// Función para obtener el rol activo desde cookies
+async function getRolActivoFromCookie(): Promise<string> {
+  const cookieStore = await cookies()
+  const rolActivo = cookieStore.get('rol_activo')?.value
+  return rolActivo || 'consolidador'
+}
+
 export async function getPersonas(search?: string): Promise<PersonaListItem[]> {
   const supabase = await createClient()
+
+  // Obtener el usuario actual desde auth
+  const currentUser = await getCurrentUserProfile()
+
+  if (!currentUser) {
+    console.error("No hay usuario autenticado")
+    return []
+  }
+
+  const userData = currentUser.profile
+
+  // Obtener el rol activo desde cookies
+  const rolActivo = await getRolActivoFromCookie()
 
   let query = supabase
     .from("personas")
@@ -73,9 +97,21 @@ export async function getPersonas(search?: string): Promise<PersonaListItem[]> {
       etapa_actual,
       ultima_gestion_fecha,
       proximo_paso,
-      created_at
+      created_at,
+      asignado_a_id,
+      casa_avivamiento_id
     `)
     .order("created_at", { ascending: false })
+
+  // Filtrar según el rol activo
+  if (rolActivo === "lider_casa") {
+    // Líder casa: solo ve sus personas asignadas
+    query = query.eq("asignado_a_id", userData.id)
+  } else if (rolActivo === "consolidador") {
+    // Consolidador: ve las personas que ha tomado (excluyendo "nuevo")
+    query = query.eq("asignado_a_id", userData.id).neq("estado_consolidacion", "nuevo")
+  }
+  // Si es admin, ve todo (sin filtros)
 
   if (search?.trim()) {
     const value = search.trim()
@@ -89,6 +125,61 @@ export async function getPersonas(search?: string): Promise<PersonaListItem[]> {
   if (error) {
     console.error(error)
     throw new Error("No se pudieron cargar las personas.")
+  }
+
+  return data ?? []
+}
+
+export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
+  const supabase = await createClient()
+
+  // Obtener el usuario actual desde auth
+  const currentUser = await getCurrentUserProfile()
+
+  if (!currentUser) {
+    console.error("No hay usuario autenticado")
+    return []
+  }
+
+  const userData = currentUser.profile
+
+  // Obtener el rol activo desde cookies
+  const rolActivo = await getRolActivoFromCookie()
+
+  // Solo consolidadores pueden ver personas nuevas
+  if (rolActivo !== "consolidador") {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from("personas")
+    .select(`
+      id,
+      nombre_completo,
+      celular,
+      edad,
+      barrio,
+      fecha_nacimiento,
+      como_conocio,
+      invitado_por,
+      acepto_jesus,
+      peticion_oracion,
+      autorizacion_datos,
+      estado_consolidacion,
+      etapa_actual,
+      ultima_gestion_fecha,
+      proximo_paso,
+      created_at,
+      asignado_a_id,
+      casa_avivamiento_id
+    `)
+    .eq("estado_consolidacion", "nuevo")
+    .is("asignado_a_id", null)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error(error)
+    throw new Error("No se pudieron cargar las personas nuevas.")
   }
 
   return data ?? []
@@ -119,7 +210,9 @@ export async function getPersonaById(id: string): Promise<PersonaDetail> {
       etapa_actual,
       ultima_gestion_fecha,
       proximo_paso,
-      created_at
+      created_at,
+      asignado_a_id,
+      casa_avivamiento_id
     `)
     .eq("id", id)
     .single()

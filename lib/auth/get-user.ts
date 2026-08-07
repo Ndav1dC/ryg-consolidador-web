@@ -1,6 +1,17 @@
 import "server-only"
 import { createClient } from "@/lib/supabase/server"
 
+export type UserProfile = {
+  id: string
+  nombre: string
+  roles: string[]
+  email?: string | null
+  auth_id?: string
+  created_at?: string
+  activo?: boolean
+  rol?: string // Compatibilidad
+}
+
 export async function getCurrentUserProfile() {
   const supabase = await createClient()
 
@@ -12,11 +23,13 @@ export async function getCurrentUserProfile() {
 
   const authId = claimsData.claims.sub
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("usuarios")
     .select("*")
     .eq("auth_id", authId)
-    .single()
+    .limit(1)
+
+  const profile = profileData?.[0] ?? null
 
   if (profileError || !profile) {
     return null
@@ -25,6 +38,9 @@ export async function getCurrentUserProfile() {
   return {
     authId,
     email: typeof claimsData.claims.email === "string" ? claimsData.claims.email : null,
-    profile,
+    profile: {
+      ...profile,
+      roles: profile.roles || [profile.rol || 'consolidador'],
+    },
   }
 }

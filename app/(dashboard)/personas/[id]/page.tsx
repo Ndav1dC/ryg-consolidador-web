@@ -79,7 +79,7 @@ export default async function PersonaDetailPage({ params }: Props) {
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
-                        Paso {item.paso ?? "-"}
+                        Etapa {item.paso ?? "-"}
                       </span>
                       {item.tipo ? (
                         <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">

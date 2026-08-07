@@ -3,16 +3,37 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { logoutAction } from "@/app/(auth)/login/actions"
+
+interface SidebarProps {
+  userNombre: string
+  userRol: string
+  roles?: string[]
+}
 
 const navItems = [
-  { id: "panel", href: "/dashboard", label: "Panel consolidador" },
-  { id: "personas", href: "/personas", label: "Mis personas" },
+  { id: "nuevos", href: "/personas/nuevos", label: "Nuevos" },
+  { id: "mis-personas", href: "/personas", label: "Mis personas" },
   { id: "seguimientos", href: "/seguimientos", label: "Seguimientos" },
-  { id: "vista-general", href: "/dashboard/resumen", label: "Vista general" },
 ]
 
-export function Sidebar() {
+const adminItems = [
+  { id: "admin-dashboard", href: "/admin", label: "Panel Admin" },
+]
+
+export function Sidebar({ userNombre, userRol, roles = [] }: SidebarProps) {
   const pathname = usePathname()
+  
+  const isAdmin = roles.includes('admin')
+  
+  let items = [...navItems]
+  if (isAdmin) {
+    items = [...adminItems, ...items]
+  }
+
+  const handleLogout = async () => {
+    await logoutAction()
+  }
 
   return (
     <aside className="hidden w-[280px] shrink-0 border-r border-stone-200 bg-white lg:flex lg:flex-col">
@@ -32,10 +53,19 @@ export function Sidebar() {
 
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-2">
-          {navItems.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href))
+          {items.map((item) => {
+            let active = false
+            if (item.href === "/personas/nuevos") {
+              active = pathname === "/personas/nuevos"
+            } else if (item.href === "/personas") {
+              active = pathname === "/personas" || (pathname.startsWith("/personas/") && !pathname.includes("/nuevos"))
+            } else if (item.href === "/seguimientos") {
+              active = pathname.startsWith("/seguimientos")
+            } else if (item.href === "/admin") {
+              active = pathname.startsWith("/admin")
+            } else {
+              active = pathname === item.href
+            }
 
             return (
               <li key={item.id}>
@@ -58,9 +88,26 @@ export function Sidebar() {
 
       <div className="border-t border-stone-200 px-4 py-4">
         <div className="rounded-2xl bg-stone-50 px-4 py-3">
-          <p className="text-sm font-semibold text-stone-900">David Cabrera</p>
-          <p className="text-xs text-stone-500">Consolidador</p>
+          <p className="text-sm font-semibold text-stone-900">{userNombre}</p>
+          <p className="text-xs text-stone-500">
+            {userRol === 'consolidador' && 'Consolidador'}
+            {userRol === 'lider_casa' && 'Líder de Casa'}
+            {userRol === 'admin' && 'Administrador'}
+          </p>
+          {roles.length > 1 && (
+            <p className="text-xs text-amber-600 mt-1">
+              {roles.length} roles disponibles
+            </p>
+          )}
         </div>
+        
+        {/* Botón de cerrar sesión */}
+        <button
+          onClick={handleLogout}
+          className="mt-3 w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-100 transition"
+        >
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   )
