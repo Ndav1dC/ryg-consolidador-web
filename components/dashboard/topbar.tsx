@@ -23,6 +23,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           )}
         </div>
 
+        {/* Buscador solo en desktop */}
         <div className="hidden w-full max-w-md lg:block">
           <input
             type="text"
@@ -31,12 +32,14 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           />
         </div>
 
+        {/* Acciones: solo campana (notificaciones), sin botón + */}
         <div className="flex items-center gap-2">
-          <button className="rounded-2xl border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:bg-stone-100">
+          <button
+            type="button"
+            className="rounded-2xl border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:bg-stone-100"
+            // Aquí luego puedes abrir un panel/modal o navegar a /notificaciones
+          >
             🔔
-          </button>
-          <button className="rounded-2xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
-            +
           </button>
         </div>
       </div>

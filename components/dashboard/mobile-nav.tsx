@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { logoutAction } from "@/app/(auth)/login/actions"
 
 const navItems = [
   { href: "/personas/nuevos", label: "Nuevos" },
@@ -12,15 +13,22 @@ const navItems = [
 export function MobileNav() {
   const pathname = usePathname()
 
+  const handleLogout = async () => {
+    await logoutAction()
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur lg:hidden">
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-4">
         {navItems.map((item) => {
           let isActive = false
+
           if (item.href === "/personas/nuevos") {
             isActive = pathname === "/personas/nuevos"
           } else if (item.href === "/personas") {
-            isActive = pathname === "/personas" || (pathname.startsWith("/personas/") && !pathname.includes("/nuevos"))
+            isActive =
+              pathname === "/personas" ||
+              (pathname.startsWith("/personas/") && !pathname.includes("/nuevos"))
           } else if (item.href === "/seguimientos") {
             isActive = pathname.startsWith("/seguimientos")
           }
@@ -37,6 +45,15 @@ export function MobileNav() {
             </Link>
           )
         })}
+
+        {/* Tab de Cerrar sesión (mobile) */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-xs font-medium text-stone-500"
+        >
+          <span>Salir</span>
+        </button>
       </div>
     </nav>
   )
