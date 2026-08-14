@@ -12,6 +12,12 @@ export type DashboardStats = {
   programados: number
 }
 
+export type DashboardNotification = {
+  id: string
+  text: string
+  href: string
+}
+
 function todayRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -89,4 +95,46 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     seguimientosHoy: seguimientosHoyRes.count ?? 0,
     programados: programadosRes.count ?? 0,
   }
+}
+
+export async function getDashboardNotifications(): Promise<
+  DashboardNotification[]
+> {
+  const stats = await getDashboardStats()
+
+  const notifications: DashboardNotification[] = []
+
+  if (stats.nuevos > 0) {
+    notifications.push({
+      id: "personas-nuevas",
+      text: `Tienes ${stats.nuevos} ${
+        stats.nuevos === 1 ? "persona nueva" : "personas nuevas"
+      } por asignar.`,
+      href: "/personas/nuevos",
+    })
+  }
+
+  if (stats.seguimientosHoy > 0) {
+    notifications.push({
+      id: "seguimientos-hoy",
+      text: `Se registraron ${stats.seguimientosHoy} ${
+        stats.seguimientosHoy === 1 ? "seguimiento" : "seguimientos"
+      } hoy.`,
+      href: "/seguimientos",
+    })
+  }
+
+  if (stats.programados > 0) {
+    notifications.push({
+      id: "seguimientos-programados",
+      text: `Tienes ${stats.programados} ${
+        stats.programados === 1
+          ? "seguimiento programado para hoy"
+          : "seguimientos programados para hoy"
+      }.`,
+      href: "/seguimientos",
+    })
+  }
+
+  return notifications
 }
