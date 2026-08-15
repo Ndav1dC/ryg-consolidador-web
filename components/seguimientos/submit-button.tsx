@@ -2,7 +2,13 @@
 
 import { useFormStatus } from "react-dom"
 
-export function SubmitButton() {
+type SubmitButtonProps = {
+  label?: string
+}
+
+export function SubmitButton({
+  label = "Guardar seguimiento",
+}: SubmitButtonProps) {
   const { pending } = useFormStatus()
 
   return (
@@ -11,7 +17,7 @@ export function SubmitButton() {
       disabled={pending}
       className="w-full rounded-2xl bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? "Guardando..." : "Guardar seguimiento"}
+      {pending ? "Guardando..." : label}
     </button>
   )
 }

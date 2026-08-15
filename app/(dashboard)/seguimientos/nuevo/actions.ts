@@ -11,84 +11,29 @@ function nullable(value: FormDataEntryValue | null) {
 
 function nullableNumber(value: FormDataEntryValue | null) {
   const parsed = String(value ?? "").trim()
+
   if (!parsed) return null
 
-  const num = Number(parsed)
-  return Number.isNaN(num) ? null : num
+  const number = Number(parsed)
+  return Number.isNaN(number) ? null : number
 }
 
-function calculateEstado(paso: number | null) {
-  if (!paso) return "nuevo"
+function calculateEstado(paso: number) {
   if (paso >= 5) return "consolidado"
   if (paso >= 2) return "activo"
   return "pendiente"
 }
 
-function calculateProximoPaso(paso: number | null) {
-  if (!paso) return null
+function calculateProximoPaso(paso: number) {
   if (paso >= 5) return "Proceso completado - Consolidado"
   if (paso === 4) return "Iniciar ministerio"
   if (paso === 3) return "Iniciar discipulado"
   if (paso === 2) return "Asignar a Casa de Avivamiento"
-  if (paso === 1) return "Seguimiento 2 - Invitar a culto"
-  return `Seguimiento ${paso + 1}`
+  return "Seguimiento 1 - Primera llamada"
 }
 
-export async function createSeguimientoAction(formData: FormData) {
+async function getUsuarioActual() {
   const supabase = await createClient()
-
-  const personaId = String(formData.get("persona_id") ?? "").trim()
-  const paso = nullableNumber(formData.get("paso"))
-  const tipo = nullable(formData.get("tipo"))
-  const resultado = nullable(formData.get("resultado"))
-  const observaciones = nullable(formData.get("observaciones"))
-  const fecha = nullable(formData.get("fecha"))
-
-  const casa = nullable(formData.get("casa")) || nullable(formData.get("casa_hidden"))
-  const lider = nullable(formData.get("lider"))
-  const ministerio = nullable(formData.get("ministerio"))
-  const nivelDiscipulado = nullable(formData.get("nivel_discipulado"))
-  const estado = nullable(formData.get("estado"))
-
-  if (!personaId || personaId === "undefined") {
-    throw new Error("La persona es obligatoria.")
-  }
-
-  if (!paso) {
-    throw new Error("La etapa es obligatoria.")
-  }
-
-  if (!tipo) {
-    throw new Error("El tipo es obligatorio.")
-  }
-
-  if (!fecha) {
-    throw new Error("La fecha es obligatoria.")
-  }
-
-  // Validaciones por etapa
-  if (paso === 1 && !resultado) {
-    throw new Error("Debes indicar el resultado de la llamada.")
-  }
-
-  if (paso === 2 && !resultado) {
-    throw new Error("Debes indicar si asistió nuevamente al culto.")
-  }
-
-  if (paso === 3) {
-    if (!resultado) throw new Error("Debes indicar si fue asignada a Casa de Avivamiento.")
-    if (!casa) throw new Error("Debes indicar la Casa de Avivamiento.")
-    if (!lider) throw new Error("Debes seleccionar el líder responsable.")
-  }
-
-  if (paso === 4 && !nivelDiscipulado) {
-    throw new Error("Debes indicar el nivel de discipulado.")
-  }
-
-  if (paso === 5) {
-    if (!resultado) throw new Error("Debes indicar si está sirviendo en ministerio.")
-    if (!ministerio) throw new Error("Debes indicar el ministerio.")
-  }
 
   const {
     data: { user },
@@ -105,161 +50,260 @@ export async function createSeguimientoAction(formData: FormData) {
     .eq("auth_id", user.id)
     .single()
 
-  if (usuarioError) {
-    console.error(usuarioError)
+  if (usuarioError || !usuario) {
+    console.error("Error consultando usuario interno:", usuarioError)
     throw new Error("No se pudo consultar el usuario interno.")
   }
 
-  if (!usuario) {
-    throw new Error("No existe un usuario interno asociado a esta cuenta.")
+  return { supabase, usuario }
+}
+
+function revalidateSeguimientos(personaId: string) {
+  revalidatePath("/personas")
+  revalidatePath(`/personas/${personaId}`)
+  revalidatePath("/seguimientos")
+  revalidatePath("/seguimientos/nuevo")
+  revalidatePath("/personas/nuevos")
+  revalidatePath("/dashboard")
+}
+
+async function confirmarVisita(formData: FormData) {
+  const { supabase } = await getUsuarioActual()
+
+  const personaId = String(formData.get("persona_id") ?? "").trim()
+  const visitaId = String(formData.get("visita_id") ?? "").trim()
+  const resultadoVisita = nullable(formData.get("resultado_visita"))
+  const observaciones = nullable(formData.get("observaciones"))
+
+  if (!personaId || !visitaId) {
+    throw new Error("No se pudo identificar la visita pendiente.")
   }
 
-  // ============================================
-  // ETAPA 1: Asignar la persona al consolidador
-  // ============================================
+  if (resultadoVisita !== "sí" && resultadoVisita !== "no") {
+    throw new Error("Debes indicar si se visitó a la persona.")
+  }
+
+  const { data: visita, error: visitaError } = await supabase
+    .from("seguimientos")
+    .select("id, persona_id, estado")
+    .eq("id", visitaId)
+    .eq("persona_id", personaId)
+    .eq("tipo", "visita")
+    .eq("estado", "pendiente")
+    .single()
+
+  if (visitaError || !visita) {
+    console.error("Error buscando visita pendiente:", visitaError)
+    throw new Error("La visita pendiente no existe o ya fue resuelta.")
+  }
+
+  const fechaActual = new Date().toISOString().slice(0, 10)
+  const visitaRealizada = resultadoVisita === "sí"
+
+  const { error: updateVisitaError } = await supabase
+    .from("seguimientos")
+    .update({
+      resultado: visitaRealizada ? "sí" : "no",
+      estado: visitaRealizada ? "realizada" : "no_realizada",
+      fecha: fechaActual,
+      observaciones,
+    })
+    .eq("id", visitaId)
+
+  if (updateVisitaError) {
+    console.error("Error actualizando visita:", updateVisitaError)
+    throw new Error("No se pudo actualizar el resultado de la visita.")
+  }
+
+  const siguienteEtapa = visitaRealizada ? 2 : 1
+
+  const { error: updatePersonaError } = await supabase
+    .from("personas")
+    .update({
+      etapa_actual: siguienteEtapa,
+      ultima_gestion_fecha: fechaActual,
+      proximo_paso: visitaRealizada
+        ? "Etapa 2 - Confirmar asistencia al culto"
+        : "Etapa 1 - Realizar nueva llamada",
+      estado_consolidacion: visitaRealizada ? "activo" : "pendiente",
+    })
+    .eq("id", personaId)
+
+  if (updatePersonaError) {
+    console.error("Error actualizando persona tras visita:", updatePersonaError)
+    throw new Error("No se pudo actualizar el avance de la persona.")
+  }
+
+  revalidateSeguimientos(personaId)
+  redirect(`/personas/${personaId}`)
+}
+
+export async function createSeguimientoAction(formData: FormData) {
+  const accion = String(formData.get("accion") ?? "crear_seguimiento")
+
+  if (accion === "confirmar_visita") {
+    await confirmarVisita(formData)
+    return
+  }
+
+  const { supabase, usuario } = await getUsuarioActual()
+
+  const personaId = String(formData.get("persona_id") ?? "").trim()
+  const paso = nullableNumber(formData.get("paso"))
+  const tipo = nullable(formData.get("tipo"))
+  const resultado = nullable(formData.get("resultado"))
+  const observaciones = nullable(formData.get("observaciones"))
+  const fecha = nullable(formData.get("fecha"))
+  const fechaProgramada = nullable(formData.get("fecha_programada"))
+
+  const casa =
+    nullable(formData.get("casa")) || nullable(formData.get("casa_hidden"))
+  const lider = nullable(formData.get("lider"))
+  const ministerio = nullable(formData.get("ministerio"))
+  const nivelDiscipulado = nullable(formData.get("nivel_discipulado"))
+  const estado = nullable(formData.get("estado"))
+
+  if (!personaId || personaId === "undefined") {
+    throw new Error("La persona es obligatoria.")
+  }
+
+  if (!paso || paso < 1 || paso > 5) {
+    throw new Error("La etapa es obligatoria.")
+  }
+
+  if (!tipo || !fecha) {
+    throw new Error("Faltan datos obligatorios del seguimiento.")
+  }
+
+  const { data: persona, error: personaConsultaError } = await supabase
+    .from("personas")
+    .select("id, etapa_actual, asignado_a_id")
+    .eq("id", personaId)
+    .single()
+
+  if (personaConsultaError || !persona) {
+    console.error("Error consultando persona:", personaConsultaError)
+    throw new Error("No se encontró la persona seleccionada.")
+  }
+
+  const { data: visitaPendiente, error: visitaPendienteError } = await supabase
+    .from("seguimientos")
+    .select("id")
+    .eq("persona_id", personaId)
+    .eq("tipo", "visita")
+    .eq("estado", "pendiente")
+    .limit(1)
+    .maybeSingle()
+
+  if (visitaPendienteError) {
+    console.error("Error consultando visita pendiente:", visitaPendienteError)
+    throw new Error("No se pudo verificar si hay una visita pendiente.")
+  }
+
+  if (visitaPendiente) {
+    throw new Error(
+      "Esta persona tiene una visita pendiente. Primero indica si se visitó."
+    )
+  }
+
+  const etapaEsperada = persona.etapa_actual || 1
+
+  if (paso !== etapaEsperada) {
+    throw new Error(
+      `No puedes registrar la Etapa ${paso}. La siguiente etapa disponible es la Etapa ${etapaEsperada}.`
+    )
+  }
+
   if (paso === 1) {
+    if (
+      resultado !== "contestó" &&
+      resultado !== "no_contestó" &&
+      resultado !== "se_agendó_visita"
+    ) {
+      throw new Error("Debes indicar el resultado de la llamada.")
+    }
+
+    if (resultado === "se_agendó_visita" && !fechaProgramada) {
+      throw new Error("Debes indicar la fecha de la visita.")
+    }
+  }
+
+  if (paso === 2 && resultado !== "sí" && resultado !== "no") {
+    throw new Error("Debes indicar si asistió nuevamente al culto.")
+  }
+
+  if (paso === 3) {
+    if (!resultado) {
+      throw new Error("Debes confirmar la asignación a Casa de Avivamiento.")
+    }
+
+    if (!casa || !lider) {
+      throw new Error("Debes indicar la casa y el líder responsable.")
+    }
+  }
+
+  if (paso === 4 && !nivelDiscipulado) {
+    throw new Error("Debes indicar el nivel de discipulado.")
+  }
+
+  if (paso === 5 && (!resultado || !ministerio)) {
+    throw new Error("Debes indicar el ministerio y el resultado.")
+  }
+
+  if (paso === 1 && !persona.asignado_a_id) {
     const { error: asignarError } = await supabase
       .from("personas")
       .update({
         asignado_a_id: usuario.id,
-        estado_consolidacion: "activo",
+        estado_consolidacion: "pendiente",
         etapa_actual: 1,
       })
       .eq("id", personaId)
 
     if (asignarError) {
-      console.error("Error asignando persona:", asignarError)
+      console.error("Error asignando persona al consolidador:", asignarError)
       throw new Error("No se pudo asignar la persona al consolidador.")
     }
   }
 
-  // ============================================
-  // ETAPA 3: Asignar a líder de casa
-  // ============================================
   if (paso === 3 && lider && casa) {
-    console.log("=== ETAPA 3 ===")
-    console.log("Líder buscado:", lider)
-    console.log("Casa buscada:", casa)
-
-    // ==========================================
-    // BUSCAR LÍDER - Case insensitive y tolerante a espacios
-    // ==========================================
-    let liderId = null
-    let liderEncontrado = null
-
-    // Buscar por nombre con ilike (case insensitive) y trim
     const { data: liderData, error: liderError } = await supabase
       .from("usuarios")
-      .select("id, nombre, roles")
+      .select("id")
       .ilike("nombre", `%${lider.trim()}%`)
+      .limit(1)
+      .maybeSingle()
 
-    console.log("Resultado búsqueda líder:", liderData)
-
-    if (liderError) {
+    if (liderError || !liderData) {
       console.error("Error buscando líder:", liderError)
+      throw new Error(`No se encontró el líder: "${lider}".`)
     }
-
-    if (liderData && liderData.length > 0) {
-      liderId = liderData[0].id
-      liderEncontrado = liderData[0].nombre
-      console.log("✅ Líder encontrado:", liderEncontrado)
-    } else {
-      // Si no encuentra, mostrar todos para debug
-      const { data: todosUsuarios } = await supabase
-        .from("usuarios")
-        .select("id, nombre, roles")
-
-      console.log("Todos los usuarios en BD:", todosUsuarios)
-
-      throw new Error(
-        `No se encontró el líder: "${lider}". Usuarios disponibles: ${todosUsuarios?.map(u => u.nombre).join(", ")}`
-      )
-    }
-
-    // ==========================================
-    // BUSCAR CASA
-    // ==========================================
-    let casaId = null
-    let casaEncontrada = null
 
     const { data: casaData, error: casaError } = await supabase
       .from("casas_avivamiento")
-      .select("id, nombre")
-      .eq("nombre", casa)
-
-    console.log("Resultado búsqueda casa:", casaData)
+      .select("id")
+      .ilike("nombre", `%${casa.trim()}%`)
+      .limit(1)
+      .maybeSingle()
 
     if (casaError) {
       console.error("Error buscando casa:", casaError)
     }
 
-    if (casaData && casaData.length > 0) {
-      casaId = casaData[0].id
-      casaEncontrada = casaData[0].nombre
-      console.log("✅ Casa encontrada:", casaEncontrada)
-    } else {
-      const { data: casaDataILike } = await supabase
-        .from("casas_avivamiento")
-        .select("id, nombre")
-        .ilike("nombre", `%${casa.trim()}%`)
-
-      if (casaDataILike && casaDataILike.length > 0) {
-        casaId = casaDataILike[0].id
-        casaEncontrada = casaDataILike[0].nombre
-        console.log("✅ Casa encontrada (ilike):", casaEncontrada)
-      }
-    }
-
-    console.log("Líder ID encontrado:", liderId)
-    console.log("Casa ID encontrado:", casaId)
-
-    // ==========================================
-    // ACTUALIZAR PERSONA
-    // ==========================================
-    if (liderId) {
-      const { error: updateError } = await supabase
-        .from("personas")
-        .update({
-          asignado_a_id: liderId,
-          casa_avivamiento_id: casaId,
-        })
-        .eq("id", personaId)
-
-      if (updateError) {
-        console.error("Error actualizando persona:", updateError)
-        throw new Error("No se pudo asignar el líder y la casa.")
-      } else {
-        console.log("✅ Persona actualizada con líder y casa")
-      }
-    } else {
-      // Mostrar todos los usuarios para debug
-      const { data: todosUsuarios } = await supabase
-        .from("usuarios")
-        .select("id, nombre, roles")
-
-      console.log("Todos los usuarios en BD:", todosUsuarios)
-
-      throw new Error(
-        `No se encontró el líder: "${lider}". Usuarios disponibles: ${todosUsuarios?.map(u => u.nombre).join(", ")}`
-      )
-    }
-  }
-
-  // ============================================
-  // ETAPA 5: Consolidar persona
-  // ============================================
-  if (paso === 5) {
-    await supabase
+    const { error: asignarCasaError } = await supabase
       .from("personas")
       .update({
-        estado_consolidacion: "consolidado",
+        asignado_a_id: liderData.id,
+        casa_avivamiento_id: casaData?.id ?? null,
       })
       .eq("id", personaId)
+
+    if (asignarCasaError) {
+      console.error("Error asignando líder y casa:", asignarCasaError)
+      throw new Error("No se pudo asignar el líder y la casa.")
+    }
   }
 
-  // ============================================
-  // Guardar el seguimiento
-  // ============================================
   const { error: seguimientoError } = await supabase.from("seguimientos").insert({
     persona_id: personaId,
     consolidador_id: usuario.id,
@@ -276,37 +320,105 @@ export async function createSeguimientoAction(formData: FormData) {
   })
 
   if (seguimientoError) {
-    console.error(seguimientoError)
-    throw new Error("No se pudo guardar el seguimiento.")
+    console.error("Error guardando seguimiento:", seguimientoError)
+    throw new Error(
+      `No se pudo guardar el seguimiento: ${seguimientoError.message}`
+    )
   }
 
-  // ============================================
-  // Actualizar la persona
-  // ============================================
+  let siguienteEtapa = paso
+  let proximoPaso = calculateProximoPaso(paso)
+  let estadoPersona = estado || calculateEstado(paso)
+
+  if (paso === 1) {
+    if (resultado === "contestó") {
+      siguienteEtapa = 2
+      proximoPaso = "Etapa 2 - Confirmar asistencia al culto"
+      estadoPersona = "activo"
+    }
+
+    if (resultado === "no_contestó") {
+      siguienteEtapa = 1
+      proximoPaso = "Etapa 1 - Realizar nueva llamada"
+      estadoPersona = "pendiente"
+    }
+
+    if (resultado === "se_agendó_visita") {
+      const { error: visitaError } = await supabase
+        .from("seguimientos")
+        .insert({
+          persona_id: personaId,
+          consolidador_id: usuario.id,
+          fecha: fechaProgramada,
+          fecha_programada: fechaProgramada,
+          tipo: "visita",
+          resultado: "pendiente",
+          observaciones: "Visita agendada desde la Etapa 1.",
+          paso: 1,
+          estado: "pendiente",
+        })
+
+      if (visitaError) {
+        console.error("Error al crear visita pendiente:", visitaError)
+
+        throw new Error(
+          `No se pudo agendar la visita: ${visitaError.message}`
+        )
+      }
+
+      siguienteEtapa = 1
+      proximoPaso = "Confirmar si se visitó a la persona"
+      estadoPersona = "pendiente"
+    }
+  }
+
+  if (paso === 2) {
+    if (resultado === "sí") {
+      siguienteEtapa = 3
+      proximoPaso = "Etapa 3 - Asignar a Casa de Avivamiento"
+      estadoPersona = "activo"
+    } else {
+      siguienteEtapa = 2
+      proximoPaso = "Etapa 2 - Realizar nueva invitación al culto"
+      estadoPersona = "activo"
+    }
+  }
+
+  if (paso === 3) {
+    siguienteEtapa = 4
+    proximoPaso = "Etapa 4 - Iniciar discipulado"
+    estadoPersona = "activo"
+  }
+
+  if (paso === 4) {
+    siguienteEtapa = 5
+    proximoPaso = "Etapa 5 - Ministerio y consolidación"
+    estadoPersona = "activo"
+  }
+
+  if (paso === 5) {
+    siguienteEtapa = 5
+    proximoPaso = "Proceso completado - Consolidado"
+    estadoPersona = "consolidado"
+  }
+
   const { error: personaError } = await supabase
     .from("personas")
     .update({
-      etapa_actual: paso,
+      etapa_actual: siguienteEtapa,
       ultima_gestion_fecha: fecha,
-      proximo_paso: calculateProximoPaso(paso),
-      estado_consolidacion: estado || calculateEstado(paso),
+      proximo_paso: proximoPaso,
+      estado_consolidacion: estadoPersona,
     })
     .eq("id", personaId)
 
   if (personaError) {
-    console.error(personaError)
-    throw new Error("Se guardó el seguimiento, pero no se pudo actualizar la persona.")
+    console.error("Error actualizando persona:", personaError)
+    throw new Error(
+      "Se guardó el seguimiento, pero no se pudo actualizar la persona."
+    )
   }
 
-  // ============================================
-  // Revalidar rutas
-  // ============================================
-  revalidatePath("/personas")
-  revalidatePath(`/personas/${personaId}`)
-  revalidatePath("/seguimientos")
-  revalidatePath("/seguimientos/nuevo")
-  revalidatePath("/personas/nuevos")
-  revalidatePath("/dashboard")
-
+  revalidateSeguimientos(personaId)
   redirect(`/personas/${personaId}`)
 }

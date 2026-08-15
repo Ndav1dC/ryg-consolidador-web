@@ -10,6 +10,7 @@ export type DashboardStats = {
   consolidados: number
   seguimientosHoy: number
   programados: number
+  visitasPendientesHoy: number
 }
 
 export type DashboardNotification = {
@@ -42,6 +43,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     consolidadosRes,
     seguimientosHoyRes,
     programadosRes,
+    visitasPendientesHoyRes,
   ] = await Promise.all([
     supabase.from("personas").select("*", { count: "exact", head: true }),
     supabase
@@ -69,6 +71,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .from("seguimientos")
       .select("*", { count: "exact", head: true })
       .eq("fecha_programada", dateOnly),
+    supabase
+      .from("seguimientos")
+      .select("*", { count: "exact", head: true })
+      .eq("tipo", "visita")
+      .eq("estado", "pendiente")
+      .eq("fecha_programada", dateOnly),
   ])
 
   const errors = [
@@ -79,6 +87,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     consolidadosRes.error,
     seguimientosHoyRes.error,
     programadosRes.error,
+    visitasPendientesHoyRes.error,
   ].filter(Boolean)
 
   if (errors.length > 0) {
@@ -94,6 +103,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     consolidados: consolidadosRes.count ?? 0,
     seguimientosHoy: seguimientosHoyRes.count ?? 0,
     programados: programadosRes.count ?? 0,
+    visitasPendientesHoy: visitasPendientesHoyRes.count ?? 0,
   }
 }
 
@@ -101,7 +111,6 @@ export async function getDashboardNotifications(): Promise<
   DashboardNotification[]
 > {
   const stats = await getDashboardStats()
-
   const notifications: DashboardNotification[] = []
 
   if (stats.nuevos > 0) {
@@ -133,6 +142,18 @@ export async function getDashboardNotifications(): Promise<
           : "seguimientos programados para hoy"
       }.`,
       href: "/seguimientos",
+    })
+  }
+
+  if (stats.visitasPendientesHoy > 0) {
+    notifications.push({
+      id: "visitas-pendientes-hoy",
+      text: `Tienes ${stats.visitasPendientesHoy} ${
+        stats.visitasPendientesHoy === 1
+          ? "visita pendiente para hoy"
+          : "visitas pendientes para hoy"
+      }.`,
+      href: "/seguimientos/nuevo",
     })
   }
 

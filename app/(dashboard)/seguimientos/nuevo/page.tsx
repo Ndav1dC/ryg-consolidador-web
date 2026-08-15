@@ -1,8 +1,9 @@
+import { cookies } from "next/headers"
 import { Topbar } from "@/components/dashboard/topbar"
 import { CreateSeguimientoForm } from "@/components/seguimientos/create-seguimiento-form"
-import { getPersonas, getPersonaById } from "@/lib/data/personas"
 import { getCurrentUserProfile } from "@/lib/auth/get-user"
-import { cookies } from "next/headers"
+import { getPersonaById, getPersonas } from "@/lib/data/personas"
+import { createClient } from "@/lib/supabase/server"
 
 type Props = {
   searchParams: Promise<{
@@ -18,31 +19,44 @@ function normalizePersonaId(value?: string) {
 export default async function NuevoSeguimientoPage({ searchParams }: Props) {
   const params = await searchParams
   const selectedPersonaId = normalizePersonaId(params.personaId)
-  
-  // Obtener el usuario actual
+
   const userData = await getCurrentUserProfile()
   const roles = userData?.profile?.roles || []
-  
-  // Obtener el rol activo desde cookies (NO usar el primer rol)
+
   const cookieStore = await cookies()
-  const rolActivo = cookieStore.get('rol_activo')?.value || roles[0] || 'consolidador'
-  
+  const rolActivo =
+    cookieStore.get("rol_activo")?.value || roles[0] || "consolidador"
+
   const userId = userData?.profile?.id
 
-  // Obtener personas según el rol
   let personas = await getPersonas()
-  
-  // Si hay una persona seleccionada, filtrar solo esa
+  let visitaPendiente: {
+    id: string
+    fecha_programada: string | null
+  } | null = null
+
   if (selectedPersonaId) {
     const personaSeleccionada = await getPersonaById(selectedPersonaId)
+
     if (personaSeleccionada) {
       personas = [personaSeleccionada]
     }
-  } else {
-    // Si no hay seleccionada, mostrar solo las personas asignadas al usuario
-    if (userId) {
-      personas = personas.filter((p) => p.asignado_a_id === userId)
-    }
+
+    const supabase = await createClient()
+
+    const { data } = await supabase
+      .from("seguimientos")
+      .select("id, fecha_programada")
+      .eq("persona_id", selectedPersonaId)
+      .eq("tipo", "visita")
+      .eq("estado", "pendiente")
+      .order("fecha_programada", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    visitaPendiente = data
+  } else if (userId) {
+    personas = personas.filter((persona) => persona.asignado_a_id === userId)
   }
 
   return (
@@ -55,14 +69,16 @@ export default async function NuevoSeguimientoPage({ searchParams }: Props) {
       <section className="px-4 py-6 lg:px-8">
         <div className="mx-auto max-w-5xl space-y-6">
           <div className="rounded-3xl border border-amber-100 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            Completa la información principal del seguimiento y guárdala en el historial de la persona.
+            Completa la información principal del seguimiento y guárdala en el
+            historial de la persona.
           </div>
 
           <CreateSeguimientoForm
             personas={personas}
             selectedPersonaId={selectedPersonaId}
-            userRol={rolActivo}  // ← Usar el rol activo de la cookie
+            userRol={rolActivo}
             readonly={!!selectedPersonaId}
+            visitaPendiente={visitaPendiente}
           />
         </div>
       </section>
