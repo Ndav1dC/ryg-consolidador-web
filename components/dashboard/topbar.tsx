@@ -1,12 +1,17 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { BrandLogo } from "./brand-logo"
+import {
+  marcarNotificacionComoLeida,
+  marcarTodasComoLeidas,
+} from "@/app/actions/notificaciones"
 
 type DashboardNotification = {
   id: string
-  text: string
+  titulo: string
+  mensaje: string
   href: string
 }
 
@@ -24,6 +29,8 @@ export function Topbar({
   showSearch = false,
 }: TopbarProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
   const notificationsRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
 
@@ -46,9 +53,25 @@ export function Topbar({
     }
   }, [])
 
-  function handleNotificationClick(href: string) {
-    setIsNotificationsOpen(false)
-    router.push(href)
+  function handleNotificationClick(notification: DashboardNotification) {
+    startTransition(async () => {
+      await marcarNotificacionComoLeida(notification.id)
+      setIsNotificationsOpen(false)
+      router.push(notification.href)
+    })
+  }
+
+  function handleMarkAsRead(id: string) {
+    startTransition(async () => {
+      await marcarNotificacionComoLeida(id)
+    })
+  }
+
+  function handleClearNotifications() {
+    startTransition(async () => {
+      await marcarTodasComoLeidas()
+      setIsNotificationsOpen(false)
+    })
   }
 
   return (
@@ -93,7 +116,7 @@ export function Topbar({
 
             {notifications.length > 0 ? (
               <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
-                {notifications.length}
+                {notifications.length > 9 ? "9+" : notifications.length}
               </span>
             ) : null}
           </button>
@@ -101,14 +124,29 @@ export function Topbar({
           {isNotificationsOpen ? (
             <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">
               <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
-                <p className="text-sm font-semibold text-stone-900">
-                  Notificaciones
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">
+                    Notificaciones
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-stone-500">
+                    {notifications.length === 0
+                      ? "No tienes pendientes"
+                      : `${notifications.length} pendiente${
+                          notifications.length === 1 ? "" : "s"
+                        }`}
+                  </p>
+                </div>
 
                 {notifications.length > 0 ? (
-                  <span className="text-xs text-stone-500">
-                    {notifications.length} pendientes
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearNotifications}
+                    disabled={isPending}
+                    className="text-xs font-medium text-amber-700 transition hover:text-amber-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Limpiar
+                  </button>
                 ) : null}
               </div>
 
@@ -126,22 +164,43 @@ export function Topbar({
                 ) : (
                   <ul className="space-y-1">
                     {notifications.map((notification) => (
-                      <li key={notification.id}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleNotificationClick(notification.href)
-                          }
-                          className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-stone-100"
-                        >
-                          <p className="text-sm text-stone-700">
-                            {notification.text}
+                      <li
+                        key={notification.id}
+                        className="rounded-xl transition hover:bg-stone-100"
+                      >
+                        <div className="px-3 py-3">
+                          <p className="text-sm font-semibold text-stone-800">
+                            {notification.titulo}
                           </p>
 
-                          <p className="mt-1 text-xs font-medium text-amber-700">
-                            Ver detalle
+                          <p className="mt-1 text-sm text-stone-600">
+                            {notification.mensaje}
                           </p>
-                        </button>
+
+                          <div className="mt-2 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleNotificationClick(notification)
+                              }
+                              disabled={isPending}
+                              className="text-xs font-medium text-amber-700 transition hover:text-amber-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Ver detalle
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleMarkAsRead(notification.id)
+                              }
+                              disabled={isPending}
+                              className="text-xs text-stone-500 transition hover:text-stone-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Marcar como leída
+                            </button>
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
