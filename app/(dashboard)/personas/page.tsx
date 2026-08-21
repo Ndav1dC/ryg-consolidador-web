@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { cookies } from "next/headers"
 import { Topbar } from "@/components/dashboard/topbar"
 import { PersonCard } from "@/components/personas/person-card"
@@ -34,36 +33,30 @@ export default async function PersonasPage() {
         title={titulo}
         subtitle={subtitulo}
         notifications={notifications}
+        showSearch={false}
       />
 
       <section className="px-4 py-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-6">
-          <div className="flex flex-col gap-4 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-stone-900">
-                {rolActivo === "lider_casa"
-                  ? "Personas asignadas"
-                  : "Personas en proceso"}
-              </h2>
+          <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-stone-900">
+                  {rolActivo === "lider_casa"
+                    ? "Personas asignadas"
+                    : "Personas en proceso"}
+                </h2>
 
-              <p className="mt-1 text-sm text-stone-500">
-                {rolActivo === "lider_casa"
-                  ? "Revisa el estado y avance de las personas en tu casa."
-                  : "Revisa el estado, el avance y entra al detalle de cada persona."}
-              </p>
-            </div>
+                <p className="mt-1 text-sm text-stone-500">
+                  {rolActivo === "lider_casa"
+                    ? "Revisa el estado y avance de las personas en tu casa."
+                    : "Revisa el estado y entra al detalle de cada persona."}
+                </p>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
                 {personas.length} persona{personas.length === 1 ? "" : "s"}
               </span>
-
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center rounded-2xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-              >
-                Volver al panel
-              </Link>
             </div>
           </div>
 

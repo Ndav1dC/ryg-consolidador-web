@@ -1,4 +1,6 @@
 import "server-only"
+
+import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 
 export type UserProfile = {
@@ -9,38 +11,49 @@ export type UserProfile = {
   auth_id?: string
   created_at?: string
   activo?: boolean
-  rol?: string // Compatibilidad
+  rol?: string
 }
 
 export async function getCurrentUserProfile() {
   const supabase = await createClient()
 
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (claimsError || !claimsData?.claims?.sub) {
+  if (userError || !user) {
     return null
   }
-
-  const authId = claimsData.claims.sub
 
   const { data: profileData, error: profileError } = await supabase
     .from("usuarios")
     .select("*")
-    .eq("auth_id", authId)
-    .limit(1)
+    .eq("auth_id", user.id)
+    .maybeSingle()
 
-  const profile = profileData?.[0] ?? null
-
-  if (profileError || !profile) {
+  if (profileError || !profileData) {
     return null
   }
 
   return {
-    authId,
-    email: typeof claimsData.claims.email === "string" ? claimsData.claims.email : null,
+    authId: user.id,
+    email: user.email ?? null,
     profile: {
-      ...profile,
-      roles: profile.roles || [profile.rol || 'consolidador'],
+      ...profileData,
+      roles: profileData.roles || [
+        profileData.rol || "consolidador",
+      ],
     },
   }
+}
+
+export async function requireCurrentUserProfile() {
+  const currentUser = await getCurrentUserProfile()
+
+  if (!currentUser) {
+    redirect("/login")
+  }
+
+  return currentUser
 }

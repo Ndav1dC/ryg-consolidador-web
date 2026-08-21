@@ -14,12 +14,14 @@ type TopbarProps = {
   title: string
   subtitle?: string
   notifications?: DashboardNotification[]
+  showSearch?: boolean
 }
 
 export function Topbar({
   title,
   subtitle,
   notifications = [],
+  showSearch = false,
 }: TopbarProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
@@ -61,18 +63,20 @@ export function Topbar({
             {title}
           </h1>
 
-          {subtitle && (
+          {subtitle ? (
             <p className="mt-1 text-sm text-stone-600">{subtitle}</p>
-          )}
+          ) : null}
         </div>
 
-        <div className="hidden w-full max-w-md lg:block">
-          <input
-            type="text"
-            placeholder="Buscar persona..."
-            className="w-full rounded-2xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-amber-500"
-          />
-        </div>
+        {showSearch ? (
+          <div className="hidden w-full max-w-md lg:block">
+            <input
+              type="text"
+              placeholder="Buscar persona..."
+              className="w-full rounded-2xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-amber-500"
+            />
+          </div>
+        ) : null}
 
         <div
           ref={notificationsRef}
@@ -87,25 +91,25 @@ export function Topbar({
           >
             <span aria-hidden="true">🔔</span>
 
-            {notifications.length > 0 && (
+            {notifications.length > 0 ? (
               <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
                 {notifications.length}
               </span>
-            )}
+            ) : null}
           </button>
 
-          {isNotificationsOpen && (
+          {isNotificationsOpen ? (
             <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">
               <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
                 <p className="text-sm font-semibold text-stone-900">
                   Notificaciones
                 </p>
 
-                {notifications.length > 0 && (
+                {notifications.length > 0 ? (
                   <span className="text-xs text-stone-500">
                     {notifications.length} pendientes
                   </span>
-                )}
+                ) : null}
               </div>
 
               <div className="max-h-80 overflow-y-auto p-2">
@@ -114,6 +118,7 @@ export function Topbar({
                     <p className="text-sm font-medium text-stone-700">
                       Todo está al día
                     </p>
+
                     <p className="mt-1 text-xs text-stone-500">
                       No tienes notificaciones por ahora.
                     </p>
@@ -132,6 +137,7 @@ export function Topbar({
                           <p className="text-sm text-stone-700">
                             {notification.text}
                           </p>
+
                           <p className="mt-1 text-xs font-medium text-amber-700">
                             Ver detalle
                           </p>
@@ -142,7 +148,7 @@ export function Topbar({
                 )}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </header>

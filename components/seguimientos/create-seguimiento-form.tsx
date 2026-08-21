@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createSeguimientoAction } from "@/app/(dashboard)/seguimientos/nuevo/actions"
 import type { PersonaListItem } from "@/lib/data/personas"
 import { SubmitButton } from "./submit-button"
@@ -16,6 +16,8 @@ type Props = {
   userRol?: string
   readonly?: boolean
   visitaPendiente?: VisitaPendiente | null
+  etapaActual?: number
+  nivelesDiscipulado?: string[]
 }
 
 const lideresCasas = {
@@ -31,17 +33,22 @@ const lideresCasas = {
   "Enrique Quira Carrillo": "El Tambo",
 }
 
-const getEtapaOptions = (rol: string = "") => {
+function getEtapaOptions(rol: string = "") {
   const opciones = [
     { value: "1", label: "Etapa 1 - Primera llamada" },
     { value: "2", label: "Etapa 2 - Asistió nuevamente al culto" },
     { value: "3", label: "Etapa 3 - Asignar a Casa de Avivamiento" },
     { value: "4", label: "Etapa 4 - Discipulado" },
-    { value: "5", label: "Etapa 5 - Ministerio y Consolidación" },
+    { value: "5", label: "Etapa 5 - Ministerio y consolidación" },
   ]
 
-  if (rol === "consolidador") return opciones.slice(0, 3)
-  if (rol === "lider_casa") return opciones.slice(3)
+  if (rol === "consolidador") {
+    return opciones.slice(0, 3)
+  }
+
+  if (rol === "lider_casa") {
+    return opciones.slice(3)
+  }
 
   return opciones
 }
@@ -71,13 +78,13 @@ const etapaMeta: Record<
   },
   "4": {
     tipo: "discipulado",
-    titulo: "Etapa 4",
-    descripcion: "Registra el nivel de discipulado actual.",
+    titulo: "Etapa 4 - Discipulado",
+    descripcion: "Registra el siguiente nivel de discipulado.",
   },
   "5": {
     tipo: "ministerio",
-    titulo: "Etapa 5",
-    descripcion: "Registra el ministerio y consolida a la persona.",
+    titulo: "Etapa 5 - Ministerio",
+    descripcion: "Registra el ministerio y finaliza la consolidación.",
   },
 }
 
@@ -135,6 +142,7 @@ function StepOneFields() {
     <>
       <div>
         <FieldLabel htmlFor="resultado">Resultado de la llamada</FieldLabel>
+
         <BaseSelect
           id="resultado"
           name="resultado"
@@ -148,11 +156,12 @@ function StepOneFields() {
         </BaseSelect>
       </div>
 
-      {resultado === "se_agendó_visita" && (
+      {resultado === "se_agendó_visita" ? (
         <div>
           <FieldLabel htmlFor="fecha_programada">
             Fecha de visita
           </FieldLabel>
+
           <BaseInput
             id="fecha_programada"
             name="fecha_programada"
@@ -161,7 +170,7 @@ function StepOneFields() {
             required
           />
         </div>
-      )}
+      ) : null}
     </>
   )
 }
@@ -172,6 +181,7 @@ function StepTwoFields() {
       <FieldLabel htmlFor="resultado">
         ¿Asistió nuevamente al culto?
       </FieldLabel>
+
       <BaseSelect id="resultado" name="resultado" defaultValue="sí" required>
         <option value="sí">Sí</option>
         <option value="no">No</option>
@@ -192,6 +202,7 @@ function StepThreeFields() {
     <>
       <div>
         <FieldLabel htmlFor="lider">Selecciona el Líder de Casa</FieldLabel>
+
         <BaseSelect
           id="lider"
           name="lider"
@@ -200,6 +211,7 @@ function StepThreeFields() {
           required
         >
           <option value="">Selecciona un líder</option>
+
           {lideres.map((lider) => (
             <option key={lider} value={lider}>
               {lider}
@@ -210,6 +222,7 @@ function StepThreeFields() {
 
       <div>
         <FieldLabel htmlFor="casa">Casa de Avivamiento</FieldLabel>
+
         <BaseInput
           id="casa"
           name="casa"
@@ -218,11 +231,13 @@ function StepThreeFields() {
           readOnly
           placeholder="Selecciona un líder para ver la casa"
         />
+
         <input type="hidden" name="casa_hidden" value={casaAutomatica} />
       </div>
 
       <div className="lg:col-span-2">
         <FieldLabel htmlFor="resultado">Confirmar asignación</FieldLabel>
+
         <BaseSelect
           id="resultado"
           name="resultado"
@@ -237,22 +252,61 @@ function StepThreeFields() {
   )
 }
 
-function StepFourFields() {
+function StepFourFields({
+  nivelSiguiente,
+  nivelesCompletados,
+}: {
+  nivelSiguiente: string
+  nivelesCompletados: string[]
+}) {
   return (
-    <div>
+    <div className="lg:col-span-2">
       <FieldLabel htmlFor="nivel_discipulado">
-        Nivel de Discipulado
+        Nivel de discipulado
       </FieldLabel>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        {["Nivel 1", "Nivel 2", "Nivel 3"].map((nivel) => {
+          const completado = nivelesCompletados.includes(nivel)
+
+          return (
+            <span
+              key={nivel}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                completado
+                  ? "bg-emerald-100 text-emerald-700"
+                  : nivel === nivelSiguiente
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-stone-100 text-stone-500"
+              }`}
+            >
+              {completado ? "✓ " : ""}
+              {nivel}
+            </span>
+          )
+        })}
+      </div>
+
       <BaseSelect
         id="nivel_discipulado"
         name="nivel_discipulado"
-        defaultValue="Nivel 1"
+        value={nivelSiguiente}
+        disabled
         required
       >
-        <option value="Nivel 1">Nivel 1</option>
-        <option value="Nivel 2">Nivel 2</option>
-        <option value="Nivel 3">Nivel 3</option>
+        <option value={nivelSiguiente}>{nivelSiguiente}</option>
       </BaseSelect>
+
+      <input
+        type="hidden"
+        name="nivel_discipulado"
+        value={nivelSiguiente}
+      />
+
+      <p className="mt-2 text-xs text-stone-500">
+        Los niveles se registran en orden. Al completar el Nivel 3 se
+        habilitará la Etapa 5: Ministerio.
+      </p>
     </div>
   )
 }
@@ -264,6 +318,7 @@ function StepFiveFields() {
         <FieldLabel htmlFor="resultado">
           ¿Está sirviendo en ministerio?
         </FieldLabel>
+
         <BaseSelect id="resultado" name="resultado" defaultValue="sí" required>
           <option value="sí">Sí</option>
           <option value="no">No</option>
@@ -272,16 +327,19 @@ function StepFiveFields() {
 
       <div>
         <FieldLabel htmlFor="ministerio">Ministerio</FieldLabel>
+
         <BaseInput
           id="ministerio"
           name="ministerio"
           type="text"
           placeholder="Ej. Alabanza, Intercesión, etc."
+          required
         />
       </div>
 
       <div className="lg:col-span-2">
         <FieldLabel htmlFor="estado">Estado de consolidación</FieldLabel>
+
         <BaseSelect
           id="estado"
           name="estado"
@@ -296,11 +354,28 @@ function StepFiveFields() {
   )
 }
 
-function StepSpecificFields({ etapa }: { etapa: string }) {
+function StepSpecificFields({
+  etapa,
+  nivelSiguiente,
+  nivelesCompletados,
+}: {
+  etapa: string
+  nivelSiguiente: string
+  nivelesCompletados: string[]
+}) {
   if (etapa === "1") return <StepOneFields />
   if (etapa === "2") return <StepTwoFields />
   if (etapa === "3") return <StepThreeFields />
-  if (etapa === "4") return <StepFourFields />
+
+  if (etapa === "4") {
+    return (
+      <StepFourFields
+        nivelSiguiente={nivelSiguiente}
+        nivelesCompletados={nivelesCompletados}
+      />
+    )
+  }
+
   return <StepFiveFields />
 }
 
@@ -320,37 +395,73 @@ export function CreateSeguimientoForm({
   userRol = "",
   readonly = false,
   visitaPendiente = null,
+  etapaActual,
+  nivelesDiscipulado = [],
 }: Props) {
   const today = new Date().toISOString().slice(0, 10)
+
   const etapasDisponibles = getEtapaOptions(userRol)
+  const etapaOptions = etapasDisponibles
+
   const primeraEtapa =
     etapasDisponibles.length > 0 ? etapasDisponibles[0].value : "1"
 
-  const [etapa, setEtapa] = useState(primeraEtapa)
+  const etapaInicial = String(etapaActual ?? Number(primeraEtapa))
+
+  const [etapa, setEtapa] = useState(etapaInicial)
+
+  const etapaBloqueada = Boolean(selectedPersonaId && etapaActual)
+
+  const nivelesCompletados = Array.from(
+    new Set(
+      nivelesDiscipulado
+        .map((nivel) => nivel.trim())
+        .filter(
+          (nivel): nivel is "Nivel 1" | "Nivel 2" | "Nivel 3" =>
+            nivel === "Nivel 1" ||
+            nivel === "Nivel 2" ||
+            nivel === "Nivel 3"
+        )
+    )
+  )
+
+  const nivelSiguiente = !nivelesCompletados.includes("Nivel 1")
+    ? "Nivel 1"
+    : !nivelesCompletados.includes("Nivel 2")
+      ? "Nivel 2"
+      : !nivelesCompletados.includes("Nivel 3")
+        ? "Nivel 3"
+        : "Nivel 3"
 
   useEffect(() => {
-    const disponibles = getEtapaOptions(userRol)
+    if (etapaBloqueada) {
+      setEtapa(etapaInicial)
+      return
+    }
 
-    if (disponibles.length === 0) return
+    const opcionesDisponibles = getEtapaOptions(userRol)
 
-    const etapaActualDisponible = disponibles.some(
+    if (opcionesDisponibles.length === 0) {
+      return
+    }
+
+    const etapaDisponible = opcionesDisponibles.some(
       (option) => option.value === etapa
     )
 
-    if (!etapaActualDisponible) {
-      setEtapa(disponibles[0].value)
+    if (!etapaDisponible) {
+      setEtapa(opcionesDisponibles[0].value)
     }
-  }, [userRol, etapa])
+  }, [etapaBloqueada, etapaInicial, etapa, userRol])
 
-  const etapaOptions = getEtapaOptions(userRol)
   const meta = useMemo(
     () => etapaMeta[etapa] ?? etapaMeta[primeraEtapa],
     [etapa, primeraEtapa]
   )
 
-  const getRolLabel = (rol: string) => {
+  function getRolLabel(rol: string) {
     if (rol === "consolidador") return "Consolidador (Etapas 1-3)"
-    if (rol === "lider_casa") return "Líder Casa (Etapas 4-5)"
+    if (rol === "lider_casa") return "Líder de Casa (Etapas 4-5)"
     if (rol === "admin") return "Administrador"
     return rol
   }
@@ -359,11 +470,12 @@ export function CreateSeguimientoForm({
     return (
       <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">
         No hay personas disponibles para hacer seguimiento.
-        {userRol === "lider_casa" && (
+
+        {userRol === "lider_casa" ? (
           <p className="mt-2 text-xs text-stone-400">
             Espera a que un consolidador te asigne personas.
           </p>
-        )}
+        ) : null}
       </div>
     )
   }
@@ -380,6 +492,7 @@ export function CreateSeguimientoForm({
             <p className="text-sm font-semibold text-stone-900">
               Visita pendiente
             </p>
+
             <p className="mt-1 text-sm text-stone-600">
               Esta persona tiene una visita programada para{" "}
               {formatDate(visitaPendiente.fecha_programada)}.
@@ -391,6 +504,7 @@ export function CreateSeguimientoForm({
               <FieldLabel htmlFor="resultado_visita">
                 ¿Se visitó?
               </FieldLabel>
+
               <BaseSelect
                 id="resultado_visita"
                 name="resultado_visita"
@@ -409,6 +523,7 @@ export function CreateSeguimientoForm({
               <FieldLabel htmlFor="observaciones">
                 Observaciones
               </FieldLabel>
+
               <BaseTextarea
                 id="observaciones"
                 name="observaciones"
@@ -446,9 +561,11 @@ export function CreateSeguimientoForm({
           <p className="text-sm font-semibold text-stone-900">
             {meta.titulo}
           </p>
+
           <p className="mt-1 text-sm text-stone-600">
             {meta.descripcion}
           </p>
+
           <p className="mt-1 text-xs text-amber-700">
             Rol: {getRolLabel(userRol)}
           </p>
@@ -463,14 +580,16 @@ export function CreateSeguimientoForm({
                 <div className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
                   {personas.find((person) => person.id === selectedPersonaId)
                     ?.nombre_completo || "Persona seleccionada"}
+
                   <input
                     type="hidden"
                     name="persona_id"
                     value={selectedPersonaId}
                   />
                 </div>
+
                 <p className="mt-1 text-xs text-stone-500">
-                  * Esta persona está preseleccionada
+                  Esta persona está preseleccionada.
                 </p>
               </>
             ) : (
@@ -481,6 +600,7 @@ export function CreateSeguimientoForm({
                 required
               >
                 <option value="">Selecciona una persona</option>
+
                 {personas.map((persona) => (
                   <option key={persona.id} value={persona.id}>
                     {persona.nombre_completo}
@@ -492,22 +612,40 @@ export function CreateSeguimientoForm({
 
           <div>
             <FieldLabel htmlFor="etapa">Etapa</FieldLabel>
-            <BaseSelect
-              id="etapa"
-              name="paso"
-              value={etapa}
-              onChange={(event) => setEtapa(event.target.value)}
-            >
-              {etapaOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </BaseSelect>
+
+            {etapaBloqueada ? (
+              <>
+                <div className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700">
+                  {etapaOptions.find((option) => option.value === etapa)
+                    ?.label || `Etapa ${etapa}`}
+                </div>
+
+                <input type="hidden" name="paso" value={etapa} />
+
+                <p className="mt-1 text-xs text-stone-500">
+                  La etapa se asigna automáticamente según el avance de la
+                  persona.
+                </p>
+              </>
+            ) : (
+              <BaseSelect
+                id="etapa"
+                name="paso"
+                value={etapa}
+                onChange={(event) => setEtapa(event.target.value)}
+              >
+                {etapaOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </BaseSelect>
+            )}
           </div>
 
           <div>
             <FieldLabel htmlFor="fecha">Fecha</FieldLabel>
+
             <BaseInput
               id="fecha"
               name="fecha"
@@ -517,10 +655,15 @@ export function CreateSeguimientoForm({
             />
           </div>
 
-          <StepSpecificFields etapa={etapa} />
+          <StepSpecificFields
+            etapa={etapa}
+            nivelSiguiente={nivelSiguiente}
+            nivelesCompletados={nivelesCompletados}
+          />
 
           <div className="lg:col-span-2">
             <FieldLabel htmlFor="observaciones">Observaciones</FieldLabel>
+
             <BaseTextarea
               id="observaciones"
               name="observaciones"
