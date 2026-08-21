@@ -1,8 +1,9 @@
 import { cookies } from "next/headers"
+
 import { Topbar } from "@/components/dashboard/topbar"
 import { CreateSeguimientoForm } from "@/components/seguimientos/create-seguimiento-form"
 import { getCurrentUserProfile } from "@/lib/auth/get-user"
-import { getDashboardNotifications } from "@/lib/data/dashboard"
+import { getNotificacionesPendientes } from "@/lib/data/notificaciones"
 import { getPersonaById, getPersonas } from "@/lib/data/personas"
 
 type Props = {
@@ -12,26 +13,33 @@ type Props = {
 }
 
 function normalizePersonaId(value?: string) {
-  if (!value || value === "undefined" || value === "null") return undefined
+  if (!value || value === "undefined" || value === "null") {
+    return undefined
+  }
+
   return value
 }
 
 export default async function SeguimientosPage({ searchParams }: Props) {
   const params = await searchParams
+
   const selectedPersonaId = normalizePersonaId(params.personaId)
 
   const userData = await getCurrentUserProfile()
   const roles = userData?.profile?.roles || []
 
   const cookieStore = await cookies()
+
   const rolActivo =
-    cookieStore.get("rol_activo")?.value || roles[0] || "consolidador"
+    cookieStore.get("rol_activo")?.value ||
+    roles[0] ||
+    "consolidador"
 
   const userId = userData?.profile?.id
 
   const [personasIniciales, notifications] = await Promise.all([
     getPersonas(),
-    getDashboardNotifications(),
+    getNotificacionesPendientes(),
   ])
 
   let personas = personasIniciales
@@ -43,7 +51,9 @@ export default async function SeguimientosPage({ searchParams }: Props) {
       personas = [personaSeleccionada]
     }
   } else if (userId) {
-    personas = personas.filter((persona) => persona.asignado_a_id === userId)
+    personas = personas.filter(
+      (persona) => persona.asignado_a_id === userId
+    )
   }
 
   return (
