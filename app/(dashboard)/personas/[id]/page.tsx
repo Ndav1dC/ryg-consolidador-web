@@ -4,7 +4,6 @@ import Link from "next/link"
 import { Topbar } from "@/components/dashboard/topbar"
 import { PersonDetailHeader } from "@/components/personas/person-detail-header"
 import {
-  getNotasByPersonaId,
   getPersonaById,
   getSeguimientosByPersonaId,
 } from "@/lib/data/personas"
@@ -32,11 +31,13 @@ const ETAPAS: Record<
   },
   2: {
     titulo: "Volvió a asistir a otro servicio",
-    descripcion: "Confirmar si la persona volvió a asistir a otro servicio.",
+    descripcion:
+      "Confirmar si la persona volvió a asistir a otro servicio.",
   },
   3: {
     titulo: "Casa de Avivamiento",
-    descripcion: "Asignar la persona a una Casa de Avivamiento y líder.",
+    descripcion:
+      "Asignar la persona a una Casa de Avivamiento y líder.",
   },
   4: {
     titulo: "Discipulado",
@@ -77,24 +78,6 @@ function getTipoLabel(tipo?: string | null) {
   return tipos[tipo || ""] || tipo || "Seguimiento"
 }
 
-function getEstadoClasses(estado?: string | null) {
-  const value = estado?.toLowerCase()
-
-  if (value === "completado" || value === "consolidado") {
-    return "bg-emerald-100 text-emerald-700"
-  }
-
-  if (value === "activo") {
-    return "bg-blue-100 text-blue-700"
-  }
-
-  if (value === "pendiente") {
-    return "bg-amber-100 text-amber-800"
-  }
-
-  return "bg-stone-100 text-stone-700"
-}
-
 function getRolActivo(
   roles: string[],
   cookieRole?: string
@@ -125,10 +108,9 @@ export default async function PersonaDetailPage({ params }: Props) {
     notFound()
   }
 
-  const [persona, seguimientos, notas, userData] = await Promise.all([
+  const [persona, seguimientos, userData] = await Promise.all([
     getPersonaById(id),
     getSeguimientosByPersonaId(id),
-    getNotasByPersonaId(id),
     getCurrentUserProfile(),
   ])
 
@@ -196,6 +178,10 @@ export default async function PersonaDetailPage({ params }: Props) {
   const textoBoton = visitaPendiente
     ? "Confirmar visita"
     : `Registrar Etapa ${etapaActual}`
+
+  const observaciones = seguimientos.filter((seguimiento) =>
+    seguimiento.observaciones?.trim()
+  )
 
   return (
     <main>
@@ -467,31 +453,79 @@ export default async function PersonaDetailPage({ params }: Props) {
           )}
 
           <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-stone-900">Notas</h3>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-stone-900">
+                  Petición de oración
+                </h3>
+
+                <p className="mt-1 text-sm text-stone-500">
+                  Petición registrada por la persona.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                {persona.peticion_oracion?.trim()
+                  ? "Registrada"
+                  : "Sin registrar"}
+              </span>
+            </div>
+
+            <div className="mt-4">
+              {persona.peticion_oracion?.trim() ? (
+                <article className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-6 text-stone-700">
+                  <p className="whitespace-pre-wrap">
+                    {persona.peticion_oracion}
+                  </p>
+                </article>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-6 text-sm text-stone-500">
+                  No hay petición de oración registrada.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-stone-900">
+                  Historial de observaciones
+                </h3>
+
+                <p className="mt-1 text-sm text-stone-500">
+                  Registro acumulado de las gestiones realizadas.
+                </p>
+              </div>
 
               <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">
-                {notas.length}
+                {observaciones.length}
               </span>
             </div>
 
             <div className="mt-4 space-y-3">
-              {notas.map((nota) => (
+              {observaciones.map((seguimiento) => (
                 <article
-                  key={nota.id}
-                  className="rounded-2xl border border-stone-200 p-4 text-sm text-stone-700"
+                  key={seguimiento.id}
+                  className="rounded-2xl border border-stone-200 p-4"
                 >
-                  <p>{nota.nota}</p>
+                  <p className="text-sm font-semibold text-stone-900">
+                    {getTipoLabel(seguimiento.tipo)}
+                  </p>
 
-                  <p className="mt-2 text-xs text-stone-400">
-                    {formatDate(nota.created_at)}
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-stone-700">
+                    {seguimiento.observaciones}
+                  </p>
+
+                  <p className="mt-3 text-xs text-stone-400">
+                    {formatDate(seguimiento.fecha)}
                   </p>
                 </article>
               ))}
 
-              {notas.length === 0 ? (
+              {observaciones.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-6 text-sm text-stone-500">
-                  No hay notas registradas.
+                  No hay observaciones registradas todavía.
                 </div>
               ) : null}
             </div>
