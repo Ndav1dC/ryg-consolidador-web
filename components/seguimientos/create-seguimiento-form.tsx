@@ -141,7 +141,9 @@ function StepOneFields() {
   return (
     <>
       <div>
-        <FieldLabel htmlFor="resultado">Resultado de la llamada</FieldLabel>
+        <FieldLabel htmlFor="resultado">
+          Resultado de la llamada
+        </FieldLabel>
 
         <BaseSelect
           id="resultado"
@@ -152,6 +154,7 @@ function StepOneFields() {
         >
           <option value="contestó">Contestó</option>
           <option value="no_contestó">No contestó</option>
+          <option value="numero_invalido">Número inválido</option>
           <option value="se_agendó_visita">Se agendó visita</option>
         </BaseSelect>
       </div>
@@ -201,7 +204,9 @@ function StepThreeFields() {
   return (
     <>
       <div>
-        <FieldLabel htmlFor="lider">Selecciona el Líder de Casa</FieldLabel>
+        <FieldLabel htmlFor="lider">
+          Selecciona el Líder de Casa
+        </FieldLabel>
 
         <BaseSelect
           id="lider"
@@ -221,7 +226,9 @@ function StepThreeFields() {
       </div>
 
       <div>
-        <FieldLabel htmlFor="casa">Casa de Avivamiento</FieldLabel>
+        <FieldLabel htmlFor="casa">
+          Casa de Avivamiento
+        </FieldLabel>
 
         <BaseInput
           id="casa"
@@ -233,20 +240,6 @@ function StepThreeFields() {
         />
 
         <input type="hidden" name="casa_hidden" value={casaAutomatica} />
-      </div>
-
-      <div className="lg:col-span-2">
-        <FieldLabel htmlFor="resultado">Confirmar asignación</FieldLabel>
-
-        <BaseSelect
-          id="resultado"
-          name="resultado"
-          defaultValue="asignado"
-          required
-        >
-          <option value="asignado">Asignado a Casa de Avivamiento</option>
-          <option value="pendiente">Pendiente de confirmación</option>
-        </BaseSelect>
       </div>
     </>
   )
@@ -338,7 +331,9 @@ function StepFiveFields() {
       </div>
 
       <div className="lg:col-span-2">
-        <FieldLabel htmlFor="estado">Estado de consolidación</FieldLabel>
+        <FieldLabel htmlFor="estado">
+          Estado de consolidación
+        </FieldLabel>
 
         <BaseSelect
           id="estado"
@@ -662,7 +657,9 @@ export function CreateSeguimientoForm({
           />
 
           <div className="lg:col-span-2">
-            <FieldLabel htmlFor="observaciones">Observaciones</FieldLabel>
+            <FieldLabel htmlFor="observaciones">
+              Observaciones
+            </FieldLabel>
 
             <BaseTextarea
               id="observaciones"
@@ -677,7 +674,11 @@ export function CreateSeguimientoForm({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <a
-          href={selectedPersonaId ? `/personas/${selectedPersonaId}` : "/personas"}
+          href={
+            selectedPersonaId
+              ? `/personas/${selectedPersonaId}`
+              : "/personas"
+          }
           className="inline-flex items-center justify-center rounded-2xl border border-stone-200 px-4 py-3 font-medium text-stone-700 hover:bg-stone-100"
         >
           Cancelar

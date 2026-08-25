@@ -143,6 +143,7 @@ function revalidateSeguimientos(personaId: string) {
   revalidatePath("/seguimientos")
   revalidatePath("/seguimientos/nuevo")
   revalidatePath("/personas/nuevos")
+  revalidatePath("/personas/numeros-invalidos")
   revalidatePath("/dashboard")
 }
 
@@ -298,7 +299,7 @@ export async function createSeguimientoAction(formData: FormData) {
   const personaId = String(formData.get("persona_id") ?? "").trim()
   const paso = nullableNumber(formData.get("paso"))
   const tipo = nullable(formData.get("tipo"))
-  const resultado = nullable(formData.get("resultado"))
+  const resultadoFormulario = nullable(formData.get("resultado"))
   const observaciones = nullable(formData.get("observaciones"))
   const fecha = nullable(formData.get("fecha"))
   const fechaProgramada = nullable(formData.get("fecha_programada"))
@@ -317,6 +318,11 @@ export async function createSeguimientoAction(formData: FormData) {
   if (!paso) {
     throw new Error("La etapa es obligatoria.")
   }
+
+  const resultado =
+    paso === 3
+      ? "asignado"
+      : resultadoFormulario
 
   validarEtapaPorRol(rolActivo, paso)
 
@@ -386,6 +392,7 @@ export async function createSeguimientoAction(formData: FormData) {
     if (
       resultado !== "contestó" &&
       resultado !== "no_contestó" &&
+      resultado !== "numero_invalido" &&
       resultado !== "se_agendó_visita"
     ) {
       throw new Error("Debes indicar el resultado de la llamada.")
@@ -401,10 +408,6 @@ export async function createSeguimientoAction(formData: FormData) {
   }
 
   if (paso === 3) {
-    if (!resultado) {
-      throw new Error("Debes confirmar la asignación a Casa de Avivamiento.")
-    }
-
     if (!casa || !lider) {
       throw new Error("Debes indicar la casa y el líder responsable.")
     }
@@ -522,20 +525,22 @@ export async function createSeguimientoAction(formData: FormData) {
     }
   }
 
-  const { error: seguimientoError } = await supabase.from("seguimientos").insert({
-    persona_id: personaId,
-    consolidador_id: usuario.id,
-    fecha,
-    tipo,
-    resultado,
-    observaciones,
-    paso,
-    casa,
-    lider,
-    ministerio,
-    nivel_discipulado: nivelValidado,
-    estado: estado || calculateEstado(paso),
-  })
+  const { error: seguimientoError } = await supabase
+    .from("seguimientos")
+    .insert({
+      persona_id: personaId,
+      consolidador_id: usuario.id,
+      fecha,
+      tipo,
+      resultado,
+      observaciones,
+      paso,
+      casa,
+      lider,
+      ministerio,
+      nivel_discipulado: nivelValidado,
+      estado: estado || calculateEstado(paso),
+    })
 
   if (seguimientoError) {
     console.error("Error guardando seguimiento:", seguimientoError)
@@ -587,6 +592,12 @@ export async function createSeguimientoAction(formData: FormData) {
     if (resultado === "no_contestó") {
       siguienteEtapa = 1
       proximoPaso = "Etapa 1 - Realizar nueva llamada"
+      estadoPersona = "pendiente"
+    }
+
+    if (resultado === "numero_invalido") {
+      siguienteEtapa = 1
+      proximoPaso = "Número inválido - Pendiente de actualizar celular"
       estadoPersona = "pendiente"
     }
 
@@ -668,6 +679,7 @@ export async function createSeguimientoAction(formData: FormData) {
       ultima_gestion_fecha: fecha,
       proximo_paso: proximoPaso,
       estado_consolidacion: estadoPersona,
+      numero_invalido: resultado === "numero_invalido",
     })
     .eq("id", personaId)
 
@@ -679,5 +691,10 @@ export async function createSeguimientoAction(formData: FormData) {
   }
 
   revalidateSeguimientos(personaId)
+
+  if (resultado === "numero_invalido") {
+    redirect("/personas/numeros-invalidos")
+  }
+
   redirect(`/personas/${personaId}`)
 }
