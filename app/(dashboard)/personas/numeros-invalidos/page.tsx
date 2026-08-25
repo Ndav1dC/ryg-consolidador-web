@@ -70,10 +70,12 @@ export default async function NumerosInvalidosPage() {
   }
 
   const seguimientosInvalidos =
-    (seguimientos as SeguimientoInvalido[] | null) ?? []
+    ((seguimientos ?? []) as unknown as SeguimientoInvalido[])
 
   const personaIds = [
-    ...new Set(seguimientosInvalidos.map((seguimiento) => seguimiento.persona_id)),
+    ...new Set(
+      seguimientosInvalidos.map((seguimiento) => seguimiento.persona_id)
+    ),
   ]
 
   let numerosInvalidos: PersonaNumeroInvalido[] = []
@@ -82,7 +84,7 @@ export default async function NumerosInvalidosPage() {
     const { data: personas, error: personasError } = await supabase
       .from("personas")
       .select(
-        "id, nombre_completo, celular, created_at, ultima_gestion_fecha, numero_invalido"
+        "id, nombre_completo, celular, created_at, ultima_gestion_fecha"
       )
       .in("id", personaIds)
       .eq("numero_invalido", true)
@@ -93,7 +95,8 @@ export default async function NumerosInvalidosPage() {
       )
     }
 
-    numerosInvalidos = (personas as PersonaNumeroInvalido[] | null) ?? []
+    numerosInvalidos =
+      ((personas ?? []) as unknown as PersonaNumeroInvalido[])
   }
 
   const fechaInvalidaPorPersona = new Map<string, string | null>()
