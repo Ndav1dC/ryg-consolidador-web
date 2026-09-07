@@ -24,6 +24,7 @@ export type PersonaListItem = {
   created_at: string
   asignado_a_id: string | null
   casa_avivamiento_id: string | null
+  numero_invalido: boolean | null
 }
 
 export type PersonaDetail = PersonaListItem
@@ -85,7 +86,8 @@ const PERSONA_SELECT = `
   proximo_paso,
   created_at,
   asignado_a_id,
-  casa_avivamiento_id
+  casa_avivamiento_id,
+  numero_invalido
 `
 
 function esConsolidada(persona: PersonaListItem) {
@@ -138,10 +140,6 @@ export async function getPersonas(
     .order("created_at", { ascending: false })
 
   if (rolActivo === "lider_casa") {
-    /*
-     * Traemos las asignadas al líder.
-     * Luego excluimos manualmente las que pertenecen a Nuevos.
-     */
     query = query.eq("asignado_a_id", userData.id)
   } else if (rolActivo === "consolidador") {
     query = query
@@ -164,17 +162,12 @@ export async function getPersonas(
     throw new Error("No se pudieron cargar las personas.")
   }
 
-  const personas = data ?? []
+  const personas = (data ?? []) as PersonaListItem[]
 
   if (rolActivo !== "lider_casa") {
     return personas
   }
 
-  /*
-   * Mis personas del líder:
-   * todo lo asignado al líder, excepto quienes todavía deben
-   * iniciar el Nivel 1 de discipulado.
-   */
   const misPersonas = personas.filter(
     (persona) => !debeIniciarNivelUno(persona)
   )
@@ -206,17 +199,10 @@ export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
       throw new Error("No se pudieron cargar las personas nuevas.")
     }
 
-    return data ?? []
+    return (data ?? []) as PersonaListItem[]
   }
 
   if (rolActivo === "lider_casa") {
-    /*
-     * Nuevos del líder:
-     * exclusivamente quienes tienen este próximo paso:
-     * "Etapa 4 - Iniciar discipulado (Nivel 1)"
-     *
-     * Consolidadas o etapa 5 nunca entran aquí.
-     */
     const { data, error } = await supabase
       .from("personas")
       .select(PERSONA_SELECT)
@@ -228,7 +214,9 @@ export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
       throw new Error("No se pudieron cargar las personas nuevas.")
     }
 
-    return (data ?? []).filter(debeIniciarNivelUno)
+    return ((data ?? []) as PersonaListItem[]).filter(
+      debeIniciarNivelUno
+    )
   }
 
   const { data, error } = await supabase
@@ -243,10 +231,12 @@ export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
     throw new Error("No se pudieron cargar las personas nuevas.")
   }
 
-  return data ?? []
+  return (data ?? []) as PersonaListItem[]
 }
 
-export async function getPersonaById(id: string): Promise<PersonaDetail> {
+export async function getPersonaById(
+  id: string
+): Promise<PersonaDetail> {
   if (!id || id === "undefined" || !isValidUUID(id)) {
     notFound()
   }
@@ -263,7 +253,7 @@ export async function getPersonaById(id: string): Promise<PersonaDetail> {
     notFound()
   }
 
-  return data
+  return data as PersonaDetail
 }
 
 export async function getSeguimientosByPersonaId(
@@ -301,7 +291,7 @@ export async function getSeguimientosByPersonaId(
     throw new Error("No se pudieron cargar los seguimientos.")
   }
 
-  return data ?? []
+  return (data ?? []) as SeguimientoItem[]
 }
 
 export async function getNotasByPersonaId(
@@ -329,5 +319,34 @@ export async function getNotasByPersonaId(
     throw new Error("No se pudieron cargar las notas.")
   }
 
-  return data ?? []
+  return (data ?? []) as PersonaNotaItem[]
+}
+
+export async function getTodasLasPersonasAdmin(): Promise<
+  PersonaListItem[]
+> {
+  const supabase = await createClient()
+  const currentUser = await getCurrentUserProfile()
+
+  if (!currentUser) {
+    redirect("/login")
+  }
+
+  const rolActivo = await getRolActivoFromCookie()
+
+  if (rolActivo !== "admin") {
+    redirect("/personas")
+  }
+
+  const { data, error } = await supabase
+    .from("personas")
+    .select(PERSONA_SELECT)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error cargando personas para administrador:", error)
+    throw new Error("No se pudieron cargar las personas del administrador.")
+  }
+
+  return (data ?? []) as PersonaListItem[]
 }
