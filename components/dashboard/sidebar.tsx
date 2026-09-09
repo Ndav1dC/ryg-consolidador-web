@@ -11,97 +11,229 @@ interface SidebarProps {
   roles?: string[]
 }
 
-const baseNavItems = [
-  { id: "nuevos", href: "/personas/nuevos", label: "Nuevos" },
-  { id: "mis-personas", href: "/personas", label: "Mis personas" },
-  { id: "seguimientos", href: "/seguimientos", label: "Seguimientos" },
-]
-
-const numeroInvalidoItem = {
-  id: "numeros-invalidos",
-  href: "/personas/numeros-invalidos",
-  label: "Números inválidos",
+type NavItem = {
+  id: string
+  href: string
+  label: string
+  descripcion?: string
 }
 
-const adminItems = [
-  { id: "admin-dashboard", href: "/admin", label: "Panel Admin" },
+const consolidadorItems: NavItem[] = [
+  {
+    id: "nuevos",
+    href: "/personas/nuevos",
+    label: "Nuevos",
+  },
+  {
+    id: "mis-personas",
+    href: "/personas",
+    label: "Mis personas",
+  },
+  {
+    id: "numeros-invalidos",
+    href: "/personas/numeros-invalidos",
+    label: "Números inválidos",
+  },
+  {
+    id: "seguimientos",
+    href: "/seguimientos",
+    label: "Seguimientos",
+  },
 ]
 
-export function Sidebar({ userNombre, userRol, roles = [] }: SidebarProps) {
+const liderCasaItems: NavItem[] = [
+  {
+    id: "nuevos",
+    href: "/personas/nuevos",
+    label: "Nuevos",
+  },
+  {
+    id: "mis-personas",
+    href: "/personas",
+    label: "Mis personas",
+  },
+  {
+    id: "seguimientos",
+    href: "/seguimientos",
+    label: "Seguimientos",
+  },
+]
+
+const adminItems: NavItem[] = [
+  {
+    id: "admin-dashboard",
+    href: "/admin",
+    label: "Resumen general",
+    descripcion: "Indicadores del proceso",
+  },
+  {
+    id: "admin-personas",
+    href: "/admin/personas",
+    label: "Personas",
+    descripcion: "Registros y asignaciones",
+  },
+  {
+    id: "admin-equipo",
+    href: "/admin/equipo",
+    label: "Equipo",
+    descripcion: "Consolidadores y líderes",
+  },
+  {
+    id: "admin-casas",
+    href: "/admin/casas",
+    label: "Casas de Avivamiento",
+    descripcion: "Casas y responsables",
+  },
+  {
+    id: "admin-seguimientos",
+    href: "/admin/seguimientos",
+    label: "Seguimientos",
+    descripcion: "Actividad y pendientes",
+  },
+  {
+    id: "admin-reportes",
+    href: "/admin/reportes",
+    label: "Reportes",
+    descripcion: "Análisis del proceso",
+  },
+]
+
+function esRutaActiva(pathname: string, href: string) {
+  if (href === "/admin") {
+    return pathname === "/admin"
+  }
+
+  if (href.startsWith("/admin/")) {
+    return pathname.startsWith(href)
+  }
+
+  if (href === "/personas/nuevos") {
+    return pathname === "/personas/nuevos"
+  }
+
+  if (href === "/personas/numeros-invalidos") {
+    return pathname.startsWith("/personas/numeros-invalidos")
+  }
+
+  if (href === "/personas") {
+    return (
+      pathname === "/personas" ||
+      (pathname.startsWith("/personas/") &&
+        !pathname.includes("/nuevos") &&
+        !pathname.includes("/numeros-invalidos"))
+    )
+  }
+
+  if (href === "/seguimientos") {
+    return pathname.startsWith("/seguimientos")
+  }
+
+  return pathname === href
+}
+
+export function Sidebar({
+  userNombre,
+  userRol,
+  roles = [],
+}: SidebarProps) {
   const pathname = usePathname()
 
-  const isAdmin = roles.includes("admin")
-  const esConsolidador = userRol === "consolidador"
+  const esAdminActivo = userRol === "admin"
+  const esLiderCasaActivo = userRol === "lider_casa"
 
-  let items = [...baseNavItems]
-
-  if (esConsolidador) {
-    items = [
-      baseNavItems[0],
-      baseNavItems[1],
-      numeroInvalidoItem,
-      baseNavItems[2],
-    ]
-  }
-
-  if (isAdmin) {
-    items = [...adminItems, ...items]
-  }
+  const items = esAdminActivo
+    ? adminItems
+    : esLiderCasaActivo
+      ? liderCasaItems
+      : consolidadorItems
 
   const handleLogout = async () => {
     await logoutAction()
   }
 
+  const tituloSeccion = esAdminActivo
+    ? "Módulo administrativo"
+    : esLiderCasaActivo
+      ? "Proceso de discipulado"
+      : "Proceso de consolidación"
+
+  const descripcionSeccion = esAdminActivo
+    ? "Supervisa personas, equipo, asignaciones y resultados."
+    : esLiderCasaActivo
+      ? "Acompaña a las personas en discipulado y consolidación."
+      : "Gestiona las personas asignadas a tu proceso."
+
+  const etiquetaRol = esAdminActivo
+    ? "Administrador"
+    : esLiderCasaActivo
+      ? "Líder de Casa"
+      : "Consolidador"
+
   return (
-    <aside className="hidden w-[280px] shrink-0 border-r border-stone-200 bg-white lg:flex lg:flex-col">
-      <div className="border-b border-stone-200 px-6 py-8">
-        <div className="flex items-center gap-4">
-          <Image
-            src="/brand/logo-completo.png"
-            alt="Reino y Gloria"
-            width={190}
-            height={70}
-            className="h-auto w-[190px] object-contain"
-            priority
-          />
-        </div>
+    <aside className="hidden w-[288px] shrink-0 border-r border-stone-200 bg-white lg:flex lg:flex-col">
+      <div className="border-b border-stone-200 px-6 py-7">
+        <Image
+          src="/brand/logo-completo.png"
+          alt="Reino y Gloria"
+          width={190}
+          height={70}
+          className="h-auto w-[190px] object-contain"
+          priority
+        />
       </div>
 
-      <nav className="flex-1 px-4 py-6">
+      <div className="border-b border-stone-100 px-6 py-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600">
+          {tituloSeccion}
+        </p>
+
+        <p className="mt-2 text-sm font-semibold text-stone-900">
+          {esAdminActivo
+            ? "Gestión y supervisión"
+            : esLiderCasaActivo
+              ? "Acompañamiento espiritual"
+              : "Seguimiento personal"}
+        </p>
+
+        <p className="mt-1 text-xs leading-5 text-stone-500">
+          {descripcionSeccion}
+        </p>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-4 py-6">
+        <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">
+          Navegación
+        </p>
+
         <ul className="space-y-2">
           {items.map((item) => {
-            let active = false
-
-            if (item.href === "/personas/nuevos") {
-              active = pathname === "/personas/nuevos"
-            } else if (item.href === "/personas/numeros-invalidos") {
-              active = pathname.startsWith("/personas/numeros-invalidos")
-            } else if (item.href === "/personas") {
-              active =
-                pathname === "/personas" ||
-                (pathname.startsWith("/personas/") &&
-                  !pathname.includes("/nuevos") &&
-                  !pathname.includes("/numeros-invalidos"))
-            } else if (item.href === "/seguimientos") {
-              active = pathname.startsWith("/seguimientos")
-            } else if (item.href === "/admin") {
-              active = pathname.startsWith("/admin")
-            } else {
-              active = pathname === item.href
-            }
+            const active = esRutaActiva(pathname, item.href)
 
             return (
               <li key={item.id}>
                 <Link
                   href={item.href}
                   className={[
-                    "block rounded-2xl px-4 py-3 text-sm font-medium transition",
+                    "block rounded-2xl px-4 py-3 transition",
                     active
                       ? "bg-amber-500 text-white shadow-sm"
                       : "text-stone-700 hover:bg-stone-100",
                   ].join(" ")}
                 >
-                  {item.label}
+                  <span className="block text-sm font-semibold">
+                    {item.label}
+                  </span>
+
+                  {item.descripcion ? (
+                    <span
+                      className={[
+                        "mt-0.5 block text-[11px]",
+                        active ? "text-amber-50" : "text-stone-400",
+                      ].join(" ")}
+                    >
+                      {item.descripcion}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             )
@@ -109,26 +241,23 @@ export function Sidebar({ userNombre, userRol, roles = [] }: SidebarProps) {
         </ul>
       </nav>
 
-      <div className="border-t border-stone-200 px-4 py-4">
+      <div className="border-t border-stone-200 px-4 py-5">
         <div className="rounded-2xl bg-stone-50 px-4 py-3">
-          <p className="text-sm font-semibold text-stone-900">
+          <p className="truncate text-sm font-semibold text-stone-900">
             {userNombre}
           </p>
 
-          <p className="text-xs text-stone-500">
-            {userRol === "consolidador" && "Consolidador"}
-            {userRol === "lider_casa" && "Líder de Casa"}
-            {userRol === "admin" && "Administrador"}
-          </p>
+          <p className="mt-1 text-xs text-stone-500">{etiquetaRol}</p>
 
           {roles.length > 1 ? (
-            <p className="mt-1 text-xs text-amber-600">
+            <p className="mt-2 text-xs text-amber-600">
               {roles.length} roles disponibles
-            </p>
+            </p>    
           ) : null}
-        </div>
+        </div>                                                                          
 
         <button
+          type="button"
           onClick={handleLogout}
           className="mt-3 w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-100"
         >

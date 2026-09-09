@@ -146,7 +146,7 @@ export function SeguimientoItemCard({
             {seguimiento.nivel_discipulado ? (
               <div className="rounded-2xl bg-stone-50 px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-                  Nivel discipulado
+                  Discipulado
                 </p>
                 <p className="mt-1 text-sm text-stone-800">
                   {seguimiento.nivel_discipulado}

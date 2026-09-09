@@ -460,7 +460,7 @@ export default async function PersonaDetailPage({ params }: Props) {
                 </h3>
 
                 <p className="mt-1 text-sm text-stone-500">
-                  Petición registrada por la persona.
+                  Desea oracion por:
                 </p>
               </div>
 
@@ -494,7 +494,7 @@ export default async function PersonaDetailPage({ params }: Props) {
                 </h3>
 
                 <p className="mt-1 text-sm text-stone-500">
-                  Registro acumulado de las gestiones realizadas.
+                  Considerar las siguientes observaciones
                 </p>
               </div>
 

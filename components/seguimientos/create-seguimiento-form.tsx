@@ -31,7 +31,18 @@ const lideresCasas = {
   "Liliana Hurtado": "La Pradera",
   "Ximena Piamba": "Las Chozas",
   "Enrique Quira Carrillo": "El Tambo",
+  "Crisdelson Varguillas": "San Ignacio",
 }
+
+const departamentos = [
+  "Danza",
+  "Alabanza",
+  "Evangelismo",
+  "Multimedia",
+  "Intercesión",
+  "Seguridad",
+  "Ungieres",
+]
 
 function getEtapaOptions(rol: string = "") {
   const opciones = [
@@ -39,7 +50,7 @@ function getEtapaOptions(rol: string = "") {
     { value: "2", label: "Etapa 2 - Asistió nuevamente al culto" },
     { value: "3", label: "Etapa 3 - Asignar a Casa de Avivamiento" },
     { value: "4", label: "Etapa 4 - Discipulado" },
-    { value: "5", label: "Etapa 5 - Ministerio y consolidación" },
+    { value: "5", label: "Etapa 5 - Departamento y consolidación" },
   ]
 
   if (rol === "consolidador") {
@@ -79,12 +90,14 @@ const etapaMeta: Record<
   "4": {
     tipo: "discipulado",
     titulo: "Etapa 4 - Discipulado",
-    descripcion: "Registra el siguiente nivel de discipulado.",
+    descripcion:
+      "Registra el avance del nivel actual de discipulado.",
   },
   "5": {
     tipo: "ministerio",
-    titulo: "Etapa 5 - Ministerio",
-    descripcion: "Registra el ministerio y finaliza la consolidación.",
+    titulo: "Etapa 5 - Departamento",
+    descripcion:
+      "Registra el departamento donde sirve la persona y finaliza la consolidación.",
   },
 }
 
@@ -252,6 +265,8 @@ function StepFourFields({
   nivelSiguiente: string
   nivelesCompletados: string[]
 }) {
+  const [terminoNivel, setTerminoNivel] = useState("")
+
   return (
     <div className="lg:col-span-2">
       <FieldLabel htmlFor="nivel_discipulado">
@@ -282,10 +297,9 @@ function StepFourFields({
 
       <BaseSelect
         id="nivel_discipulado"
-        name="nivel_discipulado"
+        name="nivel_discipulado_visible"
         value={nivelSiguiente}
         disabled
-        required
       >
         <option value={nivelSiguiente}>{nivelSiguiente}</option>
       </BaseSelect>
@@ -296,38 +310,94 @@ function StepFourFields({
         value={nivelSiguiente}
       />
 
-      <p className="mt-2 text-xs text-stone-500">
-        Los niveles se registran en orden. Al completar el Nivel 3 se
-        habilitará la Etapa 5: Ministerio.
+      <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+        <FieldLabel htmlFor="termino_nivel">
+          ¿Terminó este nivel de discipulado?
+        </FieldLabel>
+
+        <BaseSelect
+          id="termino_nivel"
+          name="termino_nivel"
+          value={terminoNivel}
+          onChange={(event) => setTerminoNivel(event.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Selecciona una respuesta
+          </option>
+          <option value="sí">Sí, terminó este nivel</option>
+          <option value="no">No, continuará en este nivel</option>
+        </BaseSelect>
+
+        {terminoNivel ? (
+          <p className="mt-2 text-xs leading-5 text-stone-600">
+            {terminoNivel === "sí"
+              ? `Al guardar, se marcará ${nivelSiguiente} como completado y se habilitará el siguiente paso.`
+              : `Al guardar, se registrará la gestión, pero la persona continuará en ${nivelSiguiente}.`}
+          </p>
+        ) : null}
+      </div>
+
+      <p className="mt-3 text-xs text-stone-500">
+        Cada nivel debe confirmarse individualmente. Solo después de completar
+        Nivel 1, Nivel 2 y Nivel 3 se habilitará la Etapa 5: Departamento y
+        consolidación.
       </p>
     </div>
   )
 }
 
 function StepFiveFields() {
+  const [sirveEnDepartamento, setSirveEnDepartamento] = useState("")
+
   return (
     <>
       <div>
         <FieldLabel htmlFor="resultado">
-          ¿Está sirviendo en ministerio?
+          ¿Está sirviendo en un departamento?
         </FieldLabel>
 
-        <BaseSelect id="resultado" name="resultado" defaultValue="sí" required>
+        <BaseSelect
+          id="resultado"
+          name="resultado"
+          value={sirveEnDepartamento}
+          onChange={(event) => setSirveEnDepartamento(event.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Selecciona una respuesta
+          </option>
           <option value="sí">Sí</option>
           <option value="no">No</option>
         </BaseSelect>
       </div>
 
       <div>
-        <FieldLabel htmlFor="ministerio">Ministerio</FieldLabel>
+        <FieldLabel htmlFor="ministerio">Departamento</FieldLabel>
 
-        <BaseInput
+        <BaseSelect
           id="ministerio"
           name="ministerio"
-          type="text"
-          placeholder="Ej. Alabanza, Intercesión, etc."
-          required
-        />
+          defaultValue=""
+          required={sirveEnDepartamento === "sí"}
+          disabled={sirveEnDepartamento !== "sí"}
+        >
+          <option value="">
+            {sirveEnDepartamento === "sí"
+              ? "Selecciona un departamento"
+              : "Selecciona primero si está sirviendo"}
+          </option>
+
+          {departamentos.map((departamento) => (
+            <option key={departamento} value={departamento}>
+              {departamento}
+            </option>
+          ))}
+        </BaseSelect>
+
+        {sirveEnDepartamento === "no" ? (
+          <input type="hidden" name="ministerio" value="No asignado" />
+        ) : null}
       </div>
 
       <div className="lg:col-span-2">
@@ -341,8 +411,12 @@ function StepFiveFields() {
           defaultValue="consolidado"
           required
         >
-          <option value="consolidado">Consolidado</option>
-          <option value="pendiente">En proceso</option>
+          <option value="consolidado">
+            Consolidado
+          </option>
+          <option value="pendiente">
+            En proceso
+          </option>
         </BaseSelect>
       </div>
     </>
@@ -402,7 +476,6 @@ export function CreateSeguimientoForm({
     etapasDisponibles.length > 0 ? etapasDisponibles[0].value : "1"
 
   const etapaInicial = String(etapaActual ?? Number(primeraEtapa))
-
   const [etapa, setEtapa] = useState(etapaInicial)
 
   const etapaBloqueada = Boolean(selectedPersonaId && etapaActual)
@@ -573,8 +646,9 @@ export function CreateSeguimientoForm({
             {readonly && selectedPersonaId ? (
               <>
                 <div className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
-                  {personas.find((person) => person.id === selectedPersonaId)
-                    ?.nombre_completo || "Persona seleccionada"}
+                  {personas.find(
+                    (person) => person.id === selectedPersonaId
+                  )?.nombre_completo || "Persona seleccionada"}
 
                   <input
                     type="hidden"

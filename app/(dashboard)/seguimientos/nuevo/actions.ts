@@ -9,6 +9,16 @@ const ULTIMA_ETAPA_CONSOLIDADOR = 3
 const PRIMERA_ETAPA_LIDER_CASA = 4
 const ULTIMA_ETAPA_PROCESO = 5
 
+const DEPARTAMENTOS_VALIDOS = [
+  "Danza",
+  "Alabanza",
+  "Evangelismo",
+  "Multimedia",
+  "Intercesión",
+  "Seguridad",
+  "Ungieres",
+] as const
+
 type NivelDiscipulado = "Nivel 1" | "Nivel 2" | "Nivel 3"
 
 type DiscipuladoResumen = {
@@ -55,6 +65,16 @@ function numeroANivel(nivel: number): NivelDiscipulado | null {
   if (nivel === 2) return "Nivel 2"
   if (nivel === 3) return "Nivel 3"
   return null
+}
+
+function esDepartamentoValido(
+  departamento: string | null
+): departamento is (typeof DEPARTAMENTOS_VALIDOS)[number] {
+  if (!departamento) return false
+
+  return DEPARTAMENTOS_VALIDOS.includes(
+    departamento as (typeof DEPARTAMENTOS_VALIDOS)[number]
+  )
 }
 
 function calculateEstado(paso: number) {
@@ -145,6 +165,8 @@ function revalidateSeguimientos(personaId: string) {
   revalidatePath("/personas/nuevos")
   revalidatePath("/personas/numeros-invalidos")
   revalidatePath("/dashboard")
+  revalidatePath("/admin")
+  revalidatePath("/admin/personas")
 }
 
 function validarEtapaPorRol(rolActivo: string, paso: number) {
@@ -309,6 +331,7 @@ export async function createSeguimientoAction(formData: FormData) {
   const lider = nullable(formData.get("lider"))
   const ministerio = nullable(formData.get("ministerio"))
   const nivelDiscipulado = nullable(formData.get("nivel_discipulado"))
+  const terminoNivel = nullable(formData.get("termino_nivel"))
   const estado = nullable(formData.get("estado"))
 
   if (!personaId || personaId === "undefined") {
@@ -422,6 +445,12 @@ export async function createSeguimientoAction(formData: FormData) {
       )
     }
 
+    if (terminoNivel !== "sí" && terminoNivel !== "no") {
+      throw new Error(
+        "Debes indicar si la persona terminó este nivel de discipulado."
+      )
+    }
+
     const nivelEsperado = getNivelEsperadoDesdeNumero(
       nivelActualDiscipulado
     )
@@ -442,12 +471,20 @@ export async function createSeguimientoAction(formData: FormData) {
   if (paso === 5) {
     if (!discipuladoCompletoAntes) {
       throw new Error(
-        "Debes completar los niveles 1, 2 y 3 de discipulado antes de registrar Ministerio."
+        "Debes completar los niveles 1, 2 y 3 de discipulado antes de registrar un departamento."
       )
     }
 
-    if (!resultado || !ministerio) {
-      throw new Error("Debes indicar el ministerio y el resultado.")
+    if (resultado !== "sí" && resultado !== "no") {
+      throw new Error(
+        "Debes indicar si la persona está sirviendo en un departamento."
+      )
+    }
+
+    if (resultado === "sí" && !esDepartamentoValido(ministerio)) {
+      throw new Error(
+        "Debes seleccionar un departamento válido."
+      )
     }
   }
 
@@ -525,6 +562,25 @@ export async function createSeguimientoAction(formData: FormData) {
     }
   }
 
+  const resultadoSeguimiento =
+    paso === 4
+      ? terminoNivel === "sí"
+        ? "nivel_completado"
+        : "nivel_en_progreso"
+      : resultado
+
+  const observacionesConResultadoNivel =
+    paso === 4 && nivelValidado
+      ? [
+          observaciones,
+          terminoNivel === "sí"
+            ? `${nivelValidado} completado.`
+            : `${nivelValidado} continúa en progreso.`,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : observaciones
+
   const { error: seguimientoError } = await supabase
     .from("seguimientos")
     .insert({
@@ -532,8 +588,8 @@ export async function createSeguimientoAction(formData: FormData) {
       consolidador_id: usuario.id,
       fecha,
       tipo,
-      resultado,
-      observaciones,
+      resultado: resultadoSeguimiento,
+      observaciones: observacionesConResultadoNivel,
       paso,
       casa,
       lider,
@@ -549,7 +605,7 @@ export async function createSeguimientoAction(formData: FormData) {
     )
   }
 
-  if (paso === 4 && nivelValidado) {
+  if (paso === 4 && nivelValidado && terminoNivel === "sí") {
     const nivelNumero = nivelANumero(nivelValidado)
     const fechaInicio =
       nivelActualDiscipulado === 0
@@ -648,28 +704,42 @@ export async function createSeguimientoAction(formData: FormData) {
   }
 
   if (paso === 4) {
-    const nuevoNivel = nivelANumero(nivelValidado!)
+    const nivelActual = nivelValidado!
 
-    if (nuevoNivel === 3) {
-      siguienteEtapa = 5
-      proximoPaso = "Etapa 5 - Ministerio y consolidación"
+    if (terminoNivel === "no") {
+      siguienteEtapa = 4
+      proximoPaso = `Etapa 4 - Continuar discipulado (${nivelActual})`
       estadoPersona = "activo"
     } else {
-      const siguienteNivel = numeroANivel(nuevoNivel + 1)
+      const nuevoNivel = nivelANumero(nivelActual)
 
-      siguienteEtapa = 4
-      proximoPaso = siguienteNivel
-        ? `Etapa 4 - Continuar discipulado (${siguienteNivel})`
-        : "Etapa 4 - Continuar discipulado"
+      if (nuevoNivel === 3) {
+        siguienteEtapa = 5
+        proximoPaso = "Etapa 5 - Departamento y consolidación"
+        estadoPersona = "activo"
+      } else {
+        const siguienteNivel = numeroANivel(nuevoNivel + 1)
 
-      estadoPersona = "activo"
+        siguienteEtapa = 4
+        proximoPaso = siguienteNivel
+          ? `Etapa 4 - Continuar discipulado (${siguienteNivel})`
+          : "Etapa 4 - Continuar discipulado"
+
+        estadoPersona = "activo"
+      }
     }
   }
 
   if (paso === 5) {
-    siguienteEtapa = 5
-    proximoPaso = "Proceso completado - Consolidado"
-    estadoPersona = "consolidado"
+    if (resultado === "sí") {
+      siguienteEtapa = 5
+      proximoPaso = "Proceso completado - Consolidado"
+      estadoPersona = "consolidado"
+    } else {
+      siguienteEtapa = 5
+      proximoPaso = "Etapa 5 - Pendiente de asignación a departamento"
+      estadoPersona = "activo"
+    }
   }
 
   const { error: personaError } = await supabase
