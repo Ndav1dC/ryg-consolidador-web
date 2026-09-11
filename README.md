@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+RYG Consolidator Web
+Aplicación web para gestionar el proceso de consolidación de personas, seguimientos, usuarios y Casas de Avivamiento.
 
-## Getting Started
+El proyecto está orientado al trabajo de consolidadores, líderes y administradores, con control de acceso por roles y una base de datos centralizada.
 
-First, run the development server:
+Características
+Registro y consulta de personas.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Gestión de personas nuevas.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Seguimiento de procesos de consolidación.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Registro de seguimientos nuevos.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Gestión de números inválidos.
 
-## Learn More
+Consulta de perfiles y detalle de personas.
 
-To learn more about Next.js, take a look at the following resources:
+Panel para consolidadores y líderes.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Módulo administrativo.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Gestión de usuarios y roles.
 
-## Deploy on Vercel
+Integración con Supabase Authentication.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Base de datos PostgreSQL mediante Supabase.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Despliegue preparado para Vercel.
+
+Métricas de navegación mediante Vercel Web Analytics.
+
+Diseño adaptable para dispositivos móviles y escritorio.
+
+Tecnologías
+Next.js con App Router.
+
+React.
+
+TypeScript.
+
+Tailwind CSS.
+
+Supabase para autenticación, base de datos y API.
+
+Vercel para despliegue y Web Analytics.
+
+Requisitos
+Antes de ejecutar el proyecto necesitas:
+
+Node.js 20 o superior recomendado.
+
+npm
+
+Un proyecto configurado en Supabase.
+
+Variables de entorno de Supabase.
