@@ -105,9 +105,9 @@ export default function DashboardLayout({ children }: Props) {
           <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 lg:px-6">
             <div className="flex items-center gap-3">
               <span className="text-sm text-stone-500">
-                {rolActivo === "consolidador" && "Modo Consolidador"}
-                {rolActivo === "lider_casa" && "Modo Líder de Casa"}
-                {rolActivo === "admin" && "Modo Administrador"}
+                {rolActivo === "consolidador" && "Consolidador"}
+                {rolActivo === "lider_casa" && "Líder de Casa"}
+                {rolActivo === "admin" && "Administrador"}
               </span>
             </div>
 
