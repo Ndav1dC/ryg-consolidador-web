@@ -64,7 +64,6 @@ function isValidUUID(value: string) {
 
 async function getRolActivoFromCookie(): Promise<string> {
   const cookieStore = await cookies()
-
   return cookieStore.get("rol_activo")?.value || "consolidador"
 }
 
@@ -140,11 +139,18 @@ export async function getPersonas(
     .order("created_at", { ascending: false })
 
   if (rolActivo === "lider_casa") {
-    query = query.eq("asignado_a_id", userData.id)
+    query = query
+      .eq("asignado_a_id", userData.id)
+      .gte("etapa_actual", 4)
   } else if (rolActivo === "consolidador") {
     query = query
       .eq("asignado_a_id", userData.id)
+      .lte("etapa_actual", 3)
       .neq("estado_consolidacion", "nuevo")
+  } else if (rolActivo === "admin") {
+    // El administrador puede consultar todas las personas.
+  } else {
+    query = query.eq("asignado_a_id", userData.id)
   }
 
   if (search?.trim()) {
@@ -158,21 +164,21 @@ export async function getPersonas(
   const { data, error } = await query
 
   if (error) {
-    console.error(error)
+    console.error("Error cargando personas por rol:", error)
     throw new Error("No se pudieron cargar las personas.")
   }
 
   const personas = (data ?? []) as PersonaListItem[]
 
-  if (rolActivo !== "lider_casa") {
-    return personas
+  if (rolActivo === "lider_casa") {
+    const misPersonas = personas.filter(
+      (persona) => !debeIniciarNivelUno(persona)
+    )
+
+    return ordenarConsolidadasAlFinal(misPersonas)
   }
 
-  const misPersonas = personas.filter(
-    (persona) => !debeIniciarNivelUno(persona)
-  )
-
-  return ordenarConsolidadasAlFinal(misPersonas)
+  return personas
 }
 
 export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
@@ -207,6 +213,7 @@ export async function getPersonasNuevas(): Promise<PersonaListItem[]> {
       .from("personas")
       .select(PERSONA_SELECT)
       .eq("asignado_a_id", userData.id)
+      .gte("etapa_actual", 4)
       .order("created_at", { ascending: false })
 
     if (error) {

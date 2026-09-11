@@ -1,77 +1,135 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState, useTransition } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 type Props = {
   roles: string[]
   rolActual: string
-  onRolChange: (nuevoRol: string) => void
+  onRolChange: (nuevoRol: string) => void | Promise<void>
 }
 
-export function RoleSwitcher({ roles, rolActual, onRolChange }: Props) {
+const roleLabels: Record<string, string> = {
+  consolidador: "Consolidador",
+  lider_casa: "Líder Casa",
+  admin: "Administrador",
+}
+
+export function RoleSwitcher({
+  roles,
+  rolActual,
+  onRolChange,
+}: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Solo mostrar si tiene más de 1 rol
-  if (!mounted || roles.length <= 1) return null
+  if (!mounted || roles.length <= 1) {
+    return null
+  }
 
   const cambiarRol = (nuevoRol: string) => {
-    onRolChange(nuevoRol)
+    if (nuevoRol === rolActual || isPending) {
+      setIsOpen(false)
+      return
+    }
+
     setIsOpen(false)
+
+    startTransition(async () => {
+      await onRolChange(nuevoRol)
+
+      if (pathname.startsWith("/admin") && nuevoRol !== "admin") {
+        router.push("/dashboard")
+        router.refresh()
+        return
+      }
+
+      router.refresh()
+    })
   }
 
   const getRolLabel = (rol: string) => {
-    if (rol === 'consolidador') return 'Consolidador'
-    if (rol === 'lider_casa') return 'Líder Casa'
-    if (rol === 'admin') return 'Administrador'
-    return rol
+    return roleLabels[rol] ?? rol
   }
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium hover:bg-stone-50 transition shadow-sm"
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        disabled={isPending}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        className="flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
       >
-        <span>{getRolLabel(rolActual)}</span>
-        <svg className="h-4 w-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <span>
+          {isPending ? "Cambiando..." : getRolLabel(rolActual)}
+        </span>
+
+        <svg
+          className="h-4 w-4 text-stone-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && !isPending ? (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
+          <button
+            type="button"
+            aria-label="Cerrar selector de rol"
+            className="fixed inset-0 z-40 h-full w-full cursor-default"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white shadow-lg border border-stone-200 py-1 z-50">
-            <div className="px-3 py-2 text-xs font-medium text-stone-400 border-b border-stone-100">
+
+          <div
+            role="menu"
+            className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-stone-200 bg-white py-1 shadow-lg"
+          >
+            <div className="border-b border-stone-100 px-3 py-2 text-xs font-medium text-stone-400">
               Cambiar rol
             </div>
+
             {roles.map((rol) => (
               <button
                 key={rol}
+                type="button"
+                role="menuitem"
                 onClick={() => cambiarRol(rol)}
-                className={`w-full px-4 py-2.5 text-left text-sm hover:bg-amber-50 transition ${
-                  rol === rolActual 
-                    ? "bg-amber-50 text-amber-700 font-semibold" 
+                className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition hover:bg-amber-50 ${
+                  rol === rolActual
+                    ? "bg-amber-50 font-semibold text-amber-700"
                     : "text-stone-700"
                 }`}
               >
-                {getRolLabel(rol)}
-                {rol === rolActual && (
-                  <span className="ml-2 text-amber-500">✓</span>
-                )}
+                <span>{getRolLabel(rol)}</span>
+
+                {rol === rolActual ? (
+                  <span className="text-amber-500" aria-label="Rol activo">
+                    ✓
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
         </>
-      )}
+      ) : null}
     </div>
   )
 }

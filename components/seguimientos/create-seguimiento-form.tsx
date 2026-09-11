@@ -301,8 +301,8 @@ function StepFourFields({
           <option value="" disabled>
             Selecciona una respuesta
           </option>
-          <option value="sí">Sí, terminó este nivel</option>
-          <option value="no">No, continuará en este nivel</option>
+          <option value="sí">En formación</option>
+          <option value="no">No continuó.</option>
         </BaseSelect>
 
         {terminoNivel ? (
