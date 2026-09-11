@@ -32,7 +32,7 @@ const lideresCasas = {
   "Ximena Piamba": "Las Chozas",
   "Enrique Quira Carrillo": "El Tambo",
   "Crisdelson Varguillas": "San Ignacio",
-}
+} as const
 
 const departamentos = [
   "Danza",
@@ -53,24 +53,14 @@ function getEtapaOptions(rol: string = "") {
     { value: "5", label: "Etapa 5 - Departamento y consolidación" },
   ]
 
-  if (rol === "consolidador") {
-    return opciones.slice(0, 3)
-  }
-
-  if (rol === "lider_casa") {
-    return opciones.slice(3)
-  }
-
+  if (rol === "consolidador") return opciones.slice(0, 3)
+  if (rol === "lider_casa") return opciones.slice(3)
   return opciones
 }
 
 const etapaMeta: Record<
   string,
-  {
-    tipo: string
-    titulo: string
-    descripcion: string
-  }
+  { tipo: string; titulo: string; descripcion: string }
 > = {
   "1": {
     tipo: "llamada",
@@ -90,8 +80,7 @@ const etapaMeta: Record<
   "4": {
     tipo: "discipulado",
     titulo: "Etapa 4 - Discipulado",
-    descripcion:
-      "Registra el avance del nivel actual de discipulado.",
+    descripcion: "Registra el avance del nivel actual de discipulado.",
   },
   "5": {
     tipo: "ministerio",
@@ -154,10 +143,7 @@ function StepOneFields() {
   return (
     <>
       <div>
-        <FieldLabel htmlFor="resultado">
-          Resultado de la llamada
-        </FieldLabel>
-
+        <FieldLabel htmlFor="resultado">Resultado de la llamada</FieldLabel>
         <BaseSelect
           id="resultado"
           name="resultado"
@@ -174,10 +160,7 @@ function StepOneFields() {
 
       {resultado === "se_agendó_visita" ? (
         <div>
-          <FieldLabel htmlFor="fecha_programada">
-            Fecha de visita
-          </FieldLabel>
-
+          <FieldLabel htmlFor="fecha_programada">Fecha de visita</FieldLabel>
           <BaseInput
             id="fecha_programada"
             name="fecha_programada"
@@ -197,7 +180,6 @@ function StepTwoFields() {
       <FieldLabel htmlFor="resultado">
         ¿Asistió nuevamente al culto?
       </FieldLabel>
-
       <BaseSelect id="resultado" name="resultado" defaultValue="sí" required>
         <option value="sí">Sí</option>
         <option value="no">No</option>
@@ -208,7 +190,7 @@ function StepTwoFields() {
 
 function StepThreeFields() {
   const [selectedLider, setSelectedLider] = useState("")
-  const lideres = Object.keys(lideresCasas)
+  const lideres = Object.keys(lideresCasas) as Array<keyof typeof lideresCasas>
 
   const casaAutomatica = selectedLider
     ? lideresCasas[selectedLider as keyof typeof lideresCasas]
@@ -220,7 +202,6 @@ function StepThreeFields() {
         <FieldLabel htmlFor="lider">
           Selecciona el Líder de Casa
         </FieldLabel>
-
         <BaseSelect
           id="lider"
           name="lider"
@@ -229,20 +210,16 @@ function StepThreeFields() {
           required
         >
           <option value="">Selecciona un líder</option>
-
           {lideres.map((lider) => (
             <option key={lider} value={lider}>
-              {lider}
+              {lider} - {lideresCasas[lider]}
             </option>
           ))}
         </BaseSelect>
       </div>
 
       <div>
-        <FieldLabel htmlFor="casa">
-          Casa de Avivamiento
-        </FieldLabel>
-
+        <FieldLabel htmlFor="casa">Casa de Avivamiento</FieldLabel>
         <BaseInput
           id="casa"
           name="casa"
@@ -251,7 +228,6 @@ function StepThreeFields() {
           readOnly
           placeholder="Selecciona un líder para ver la casa"
         />
-
         <input type="hidden" name="casa_hidden" value={casaAutomatica} />
       </div>
     </>
@@ -356,7 +332,6 @@ function StepFiveFields() {
         <FieldLabel htmlFor="resultado">
           ¿Está sirviendo en un departamento?
         </FieldLabel>
-
         <BaseSelect
           id="resultado"
           name="resultado"
@@ -374,7 +349,6 @@ function StepFiveFields() {
 
       <div>
         <FieldLabel htmlFor="ministerio">Departamento</FieldLabel>
-
         <BaseSelect
           id="ministerio"
           name="ministerio"
@@ -387,7 +361,6 @@ function StepFiveFields() {
               ? "Selecciona un departamento"
               : "Selecciona primero si está sirviendo"}
           </option>
-
           {departamentos.map((departamento) => (
             <option key={departamento} value={departamento}>
               {departamento}
@@ -401,22 +374,15 @@ function StepFiveFields() {
       </div>
 
       <div className="lg:col-span-2">
-        <FieldLabel htmlFor="estado">
-          Estado de consolidación
-        </FieldLabel>
-
+        <FieldLabel htmlFor="estado">Estado de consolidación</FieldLabel>
         <BaseSelect
           id="estado"
           name="estado"
           defaultValue="consolidado"
           required
         >
-          <option value="consolidado">
-            Consolidado
-          </option>
-          <option value="pendiente">
-            En proceso
-          </option>
+          <option value="consolidado">Consolidado</option>
+          <option value="pendiente">En proceso</option>
         </BaseSelect>
       </div>
     </>
@@ -435,7 +401,6 @@ function StepSpecificFields({
   if (etapa === "1") return <StepOneFields />
   if (etapa === "2") return <StepTwoFields />
   if (etapa === "3") return <StepThreeFields />
-
   if (etapa === "4") {
     return (
       <StepFourFields
@@ -444,7 +409,6 @@ function StepSpecificFields({
       />
     )
   }
-
   return <StepFiveFields />
 }
 
@@ -468,16 +432,11 @@ export function CreateSeguimientoForm({
   nivelesDiscipulado = [],
 }: Props) {
   const today = new Date().toISOString().slice(0, 10)
-
   const etapasDisponibles = getEtapaOptions(userRol)
-  const etapaOptions = etapasDisponibles
-
   const primeraEtapa =
     etapasDisponibles.length > 0 ? etapasDisponibles[0].value : "1"
-
   const etapaInicial = String(etapaActual ?? Number(primeraEtapa))
   const [etapa, setEtapa] = useState(etapaInicial)
-
   const etapaBloqueada = Boolean(selectedPersonaId && etapaActual)
 
   const nivelesCompletados = Array.from(
@@ -508,10 +467,7 @@ export function CreateSeguimientoForm({
     }
 
     const opcionesDisponibles = getEtapaOptions(userRol)
-
-    if (opcionesDisponibles.length === 0) {
-      return
-    }
+    if (opcionesDisponibles.length === 0) return
 
     const etapaDisponible = opcionesDisponibles.some(
       (option) => option.value === etapa
@@ -538,7 +494,6 @@ export function CreateSeguimientoForm({
     return (
       <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">
         No hay personas disponibles para hacer seguimiento.
-
         {userRol === "lider_casa" ? (
           <p className="mt-2 text-xs text-stone-400">
             Espera a que un consolidador te asigne personas.
@@ -560,19 +515,15 @@ export function CreateSeguimientoForm({
             <p className="text-sm font-semibold text-stone-900">
               Visita pendiente
             </p>
-
             <p className="mt-1 text-sm text-stone-600">
-              Esta persona tiene una visita programada para{" "}
+              Esta persona tiene una visita programada para {" "}
               {formatDate(visitaPendiente.fecha_programada)}.
             </p>
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <div className="lg:col-span-2">
-              <FieldLabel htmlFor="resultado_visita">
-                ¿Se visitó?
-              </FieldLabel>
-
+              <FieldLabel htmlFor="resultado_visita">¿Se visitó?</FieldLabel>
               <BaseSelect
                 id="resultado_visita"
                 name="resultado_visita"
@@ -591,7 +542,6 @@ export function CreateSeguimientoForm({
               <FieldLabel htmlFor="observaciones">
                 Observaciones
               </FieldLabel>
-
               <BaseTextarea
                 id="observaciones"
                 name="observaciones"
@@ -610,7 +560,6 @@ export function CreateSeguimientoForm({
           >
             Cancelar
           </a>
-
           <div className="sm:w-56">
             <SubmitButton label="Guardar visita" />
           </div>
@@ -629,11 +578,9 @@ export function CreateSeguimientoForm({
           <p className="text-sm font-semibold text-stone-900">
             {meta.titulo}
           </p>
-
           <p className="mt-1 text-sm text-stone-600">
             {meta.descripcion}
           </p>
-
           <p className="mt-1 text-xs text-amber-700">
             Rol: {getRolLabel(userRol)}
           </p>
@@ -646,9 +593,24 @@ export function CreateSeguimientoForm({
             {readonly && selectedPersonaId ? (
               <>
                 <div className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
-                  {personas.find(
-                    (person) => person.id === selectedPersonaId
-                  )?.nombre_completo || "Persona seleccionada"}
+                  {(() => {
+                    const persona = personas.find(
+                      (person) => person.id === selectedPersonaId
+                    )
+
+                    if (!persona) return "Persona seleccionada"
+
+                    return (
+                      <>
+                        <span>{persona.nombre_completo}</span>
+                        {persona.barrio ? (
+                          <span className="text-stone-500">
+                            {" "}- {persona.barrio}
+                          </span>
+                        ) : null}
+                      </>
+                    )
+                  })()}
 
                   <input
                     type="hidden"
@@ -669,10 +631,10 @@ export function CreateSeguimientoForm({
                 required
               >
                 <option value="">Selecciona una persona</option>
-
                 {personas.map((persona) => (
                   <option key={persona.id} value={persona.id}>
                     {persona.nombre_completo}
+                    {persona.barrio ? ` - ${persona.barrio}` : ""}
                   </option>
                 ))}
               </BaseSelect>
@@ -681,16 +643,13 @@ export function CreateSeguimientoForm({
 
           <div>
             <FieldLabel htmlFor="etapa">Etapa</FieldLabel>
-
             {etapaBloqueada ? (
               <>
                 <div className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700">
-                  {etapaOptions.find((option) => option.value === etapa)
+                  {etapasDisponibles.find((option) => option.value === etapa)
                     ?.label || `Etapa ${etapa}`}
                 </div>
-
                 <input type="hidden" name="paso" value={etapa} />
-
                 <p className="mt-1 text-xs text-stone-500">
                   La etapa se asigna automáticamente según el avance de la
                   persona.
@@ -703,7 +662,7 @@ export function CreateSeguimientoForm({
                 value={etapa}
                 onChange={(event) => setEtapa(event.target.value)}
               >
-                {etapaOptions.map((option) => (
+                {etapasDisponibles.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -714,7 +673,6 @@ export function CreateSeguimientoForm({
 
           <div>
             <FieldLabel htmlFor="fecha">Fecha</FieldLabel>
-
             <BaseInput
               id="fecha"
               name="fecha"
@@ -734,7 +692,6 @@ export function CreateSeguimientoForm({
             <FieldLabel htmlFor="observaciones">
               Observaciones
             </FieldLabel>
-
             <BaseTextarea
               id="observaciones"
               name="observaciones"
@@ -757,7 +714,6 @@ export function CreateSeguimientoForm({
         >
           Cancelar
         </a>
-
         <div className="sm:w-56">
           <SubmitButton />
         </div>
