@@ -82,25 +82,36 @@ export async function getAdminSummary(): Promise<AdminSummary> {
       .from("casas_avivamiento")
       .select("id", { count: "exact", head: true }),
 
+    // El esquema compartido no tiene una columna usuarios.activo.
+    // Por ahora cuenta todos los usuarios, sin afirmar que estén activos.
     supabase
       .from("usuarios")
-      .select("id", { count: "exact", head: true })
-      .eq("activo", true),
+      .select("id", { count: "exact", head: true }),
   ])
 
-  const errors = [
-    personasResult.error,
-    nuevasResult.error,
-    activasResult.error,
-    consolidadasResult.error,
-    sinAsignarResult.error,
-    seguimientosResult.error,
-    casasResult.error,
-    usuariosResult.error,
-  ].filter(Boolean)
+  const consultas = [
+    { nombre: "total de personas", resultado: personasResult },
+    { nombre: "personas nuevas", resultado: nuevasResult },
+    { nombre: "personas activas", resultado: activasResult },
+    { nombre: "personas consolidadas", resultado: consolidadasResult },
+    { nombre: "personas sin asignar", resultado: sinAsignarResult },
+    { nombre: "seguimientos pendientes", resultado: seguimientosResult },
+    { nombre: "Casas de Avivamiento", resultado: casasResult },
+    { nombre: "usuarios", resultado: usuariosResult },
+  ]
 
-  if (errors.length > 0) {
-    console.error("Error cargando resumen administrativo:", errors)
+  const fallidas = consultas
+    .filter(({ resultado }) => resultado.error)
+    .map(({ nombre, resultado }) => ({
+      consulta: nombre,
+      code: resultado.error?.code,
+      message: resultado.error?.message,
+      details: resultado.error?.details,
+      hint: resultado.error?.hint,
+    }))
+
+  if (fallidas.length > 0) {
+    console.error("Consultas fallidas del resumen:", fallidas)
     throw new Error("No se pudo cargar el resumen administrativo.")
   }
 
@@ -109,31 +120,22 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .select("etapa_actual")
 
   if (etapasError) {
-    console.error("Error cargando etapas:", etapasError)
+    console.error("Error cargando etapas:", {
+      code: etapasError.code,
+      message: etapasError.message,
+      details: etapasError.details,
+      hint: etapasError.hint,
+    })
+
     throw new Error("No se pudieron cargar las etapas.")
   }
 
   const etapas = [
-    {
-      etapa: 1,
-      label: "Primera llamada",
-    },
-    {
-      etapa: 2,
-      label: "Asistencia al culto",
-    },
-    {
-      etapa: 3,
-      label: "Casa de Avivamiento",
-    },
-    {
-      etapa: 4,
-      label: "Discipulado",
-    },
-    {
-      etapa: 5,
-      label: "Consolidación",
-    },
+    { etapa: 1, label: "Primera llamada" },
+    { etapa: 2, label: "Asistencia al culto" },
+    { etapa: 3, label: "Casa de Avivamiento" },
+    { etapa: 4, label: "Discipulado" },
+    { etapa: 5, label: "Consolidación" },
   ].map((item) => ({
     ...item,
     cantidad: (etapasData ?? []).filter(
