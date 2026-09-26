@@ -8,79 +8,110 @@ interface MobileNavProps {
   userRol: string
 }
 
-const baseNavItems = [
+type NavItem = {
+  href: string
+  label: string
+}
+
+const baseNavItems: NavItem[] = [
   { href: "/personas/nuevos", label: "Nuevos" },
   { href: "/personas", label: "Mis personas" },
   { href: "/seguimientos", label: "Seguimientos" },
 ]
 
-const numeroInvalidoItem = {
+const numeroInvalidoItem: NavItem = {
   href: "/personas/numeros-invalidos",
   label: "Números inválidos",
+}
+
+const adminNavItems: NavItem[] = [
+  { href: "/admin", label: "Resumen" },
+  { href: "/admin/personas", label: "Personas" },
+  { href: "/admin/equipo", label: "Equipo" },
+  { href: "/admin/casas", label: "Casas" },
+  { href: "/admin/seguimientos", label: "Seguimientos" },
+  { href: "/admin/reportes", label: "Reportes" },
+]
+
+function esRutaActiva(pathname: string, href: string) {
+  if (href === "/admin") {
+    return pathname === "/admin"
+  }
+
+  if (href.startsWith("/admin/")) {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
+  if (href === "/personas/nuevos") {
+    return pathname === href
+  }
+
+  if (href === "/personas/numeros-invalidos") {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
+  if (href === "/personas") {
+    return (
+      pathname === href ||
+      (pathname.startsWith("/personas/") &&
+        !pathname.startsWith("/personas/nuevos") &&
+        !pathname.startsWith("/personas/numeros-invalidos"))
+    )
+  }
+
+  if (href === "/seguimientos") {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
+  return pathname === href
 }
 
 export function MobileNav({ userRol }: MobileNavProps) {
   const pathname = usePathname()
 
   const navItems =
-    userRol === "consolidador"
-      ? [
-          baseNavItems[0],
-          baseNavItems[1],
-          numeroInvalidoItem,
-          baseNavItems[2],
-        ]
-      : baseNavItems
-
-  const handleLogout = async () => {
-    await logoutAction()
-  }
+    userRol === "admin"
+      ? adminNavItems
+      : userRol === "consolidador"
+        ? [
+            baseNavItems[0],
+            baseNavItems[1],
+            numeroInvalidoItem,
+            baseNavItems[2],
+          ]
+        : baseNavItems
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur lg:hidden">
-      <div
-        className={
-          userRol === "consolidador"
-            ? "grid grid-cols-5"
-            : "grid grid-cols-4"
-        }
-      >
+    <nav
+      aria-label="Navegación principal móvil"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur lg:hidden"
+    >
+      <div className="flex w-full items-stretch overflow-x-auto overscroll-x-contain pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
-          let isActive = false
-
-          if (item.href === "/personas/nuevos") {
-            isActive = pathname === "/personas/nuevos"
-          } else if (item.href === "/personas/numeros-invalidos") {
-            isActive = pathname.startsWith("/personas/numeros-invalidos")
-          } else if (item.href === "/personas") {
-            isActive =
-              pathname === "/personas" ||
-              (pathname.startsWith("/personas/") &&
-                !pathname.includes("/nuevos") &&
-                !pathname.includes("/numeros-invalidos"))
-          } else if (item.href === "/seguimientos") {
-            isActive = pathname.startsWith("/seguimientos")
-          }
+          const isActive = esRutaActiva(pathname, item.href)
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-4 text-center text-[10px] font-medium sm:px-3 sm:text-xs ${
-                isActive ? "text-amber-700" : "text-stone-500"
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-h-14 min-w-20 flex-1 shrink-0 items-center justify-center px-2 py-3 text-center text-[11px] font-medium leading-tight ${
+                isActive
+                  ? "border-t-2 border-amber-600 text-amber-700"
+                  : "border-t-2 border-transparent text-stone-600"
               }`}
             >
-              <span className="leading-tight">{item.label}</span>
+              {item.label}
             </Link>
           )
         })}
 
         <button
           type="button"
-          onClick={handleLogout}
-          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-4 text-center text-[10px] font-medium text-stone-500 sm:px-3 sm:text-xs"
+          onClick={() => void logoutAction()}
+          className="flex min-h-14 min-w-20 flex-1 shrink-0 items-center justify-center border-t-2 border-transparent px-2 py-3 text-center text-[11px] font-medium text-stone-600"
         >
-          <span>Salir</span>
+          Salir
         </button>
       </div>
     </nav>
