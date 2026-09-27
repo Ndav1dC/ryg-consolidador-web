@@ -109,7 +109,7 @@ export function MobileNav({ userRol }: MobileNavProps) {
         <button
           type="button"
           onClick={() => void logoutAction()}
-          className="flex min-h-14 min-w-20 flex-1 shrink-0 items-center justify-center border-t-2 border-transparent px-2 py-3 text-center text-[11px] font-medium text-stone-600"
+          className="flex min-h-14 min-w-20 flex-1 shrink-0 items-center jgkustify-center border-t-2 border-transparent px-2 py-3 text-center text-[11px] font-medium text-stone-600"
         >
           Salir
         </button>

@@ -1,5 +1,4 @@
 import Link from "next/link"
-
 import { getAdminSummary } from "@/lib/data/admin"
 
 const modulos = [
@@ -7,302 +6,373 @@ const modulos = [
     href: "/admin/personas",
     title: "Personas",
     description: "Consulta registros, estados y asignaciones.",
-    icon: "👥",
   },
   {
     href: "/admin/equipo",
     title: "Equipo",
-    description: "Revisa consolidadores, líderes y usuarios activos.",
-    icon: "🧑‍💼",
+    description: "Revisa consolidadores, líderes y usuarios registrados.",
   },
   {
     href: "/admin/casas",
     title: "Casas de Avivamiento",
     description: "Consulta casas, responsables y personas asignadas.",
-    icon: "🏠",
   },
   {
     href: "/admin/seguimientos",
     title: "Seguimientos",
-    description: "Supervisa la actividad y los pendientes.",
-    icon: "📋",
+    description: "Supervisa la actividad y las tareas pendientes.",
   },
   {
     href: "/admin/reportes",
     title: "Reportes",
-    description: "Analiza el avance general del proceso.",
-    icon: "📊",
+    description: "Explora los datos y el avance del proceso.",
   },
 ]
+
+type StatCardProps = {
+  label: string
+  value: number
+  description: string
+  href: string
+  tone?: "stone" | "amber" | "blue" | "emerald" | "red"
+}
 
 function StatCard({
   label,
   value,
   description,
+  href,
   tone = "stone",
-}: {
-  label: string
-  value: number
-  description: string
-  tone?: "stone" | "amber" | "blue" | "emerald" | "red"
-}) {
-  const toneClasses = {
-    stone: "bg-stone-50 text-stone-900",
-    amber: "bg-amber-50 text-amber-900",
-    blue: "bg-blue-50 text-blue-900",
-    emerald: "bg-emerald-50 text-emerald-900",
-    red: "bg-red-50 text-red-900",
+}: StatCardProps) {
+  const tones = {
+    stone: "border-stone-200 bg-white text-stone-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-950",
+    blue: "border-blue-200 bg-blue-50 text-blue-950",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-950",
+    red: "border-red-200 bg-red-50 text-red-950",
   }
 
   return (
-    <article
-      className={`rounded-3xl border border-stone-200 p-5 shadow-sm ${toneClasses[tone]}`}
+    <Link
+      href={href}
+      className={`group flex min-w-0 flex-col rounded-2xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tones[tone]}`}
     >
-      <p className="text-sm font-medium opacity-70">{label}</p>
+      <span className="text-sm font-medium opacity-75">
+        {label}
+      </span>
 
-      <p className="mt-3 text-3xl font-bold">{value}</p>
+      <span className="mt-3 text-3xl font-bold tabular-nums">
+        {value}
+      </span>
 
-      <p className="mt-1 text-xs opacity-70">{description}</p>
-    </article>
+      <span className="mt-2 text-xs leading-5 opacity-75">
+        {description}
+      </span>
+
+      <span className="mt-4 text-xs font-semibold underline-offset-4 group-hover:underline">
+        Ver detalle
+      </span>
+    </Link>
   )
 }
 
 export default async function AdminPage() {
   const summary = await getAdminSummary()
 
+  const porcentajeAsignado =
+    summary.totalPersonas > 0
+      ? Math.round(
+          ((summary.totalPersonas - summary.personasSinAsignar) /
+            summary.totalPersonas) *
+            100
+        )
+      : 0
+
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-7 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen min-w-0 bg-stone-50 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-7xl space-y-7">
         <header className="border-b border-stone-200 pb-6">
-          <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
             Módulo administrativo
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-stone-900">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
             Resumen general
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-            Supervisa personas, equipo, asignaciones y el avance del proceso de
-            consolidación.
+            Una vista rápida de las personas, las asignaciones y el
+            seguimiento del proceso.
           </p>
         </header>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Personas registradas"
-            value={summary.totalPersonas}
-            description="Total de personas en el sistema"
-          />
-
-          <StatCard
-            label="Personas nuevas"
-            value={summary.personasNuevas}
-            description="Pendientes de gestión"
-            tone="amber"
-          />
-
-          <StatCard
-            label="Personas activas"
-            value={summary.personasActivas}
-            description="En proceso de consolidación"
-            tone="blue"
-          />
-
-          <StatCard
-            label="Personas consolidadas"
-            value={summary.personasConsolidadas}
-            description="Proceso completado"
-            tone="emerald"
-          />
-
-          <StatCard
-            label="Sin asignar"
-            value={summary.personasSinAsignar}
-            description="Requieren responsable"
-            tone="red"
-          />
-
-          <StatCard
-            label="Seguimientos pendientes"
-            value={summary.seguimientosPendientes}
-            description="Acciones por completar"
-            tone="amber"
-          />
-
-          <StatCard
-            label="Casas de Avivamiento"
-            value={summary.casasAvivamiento}
-            description="Casas configuradas"
-          />
-
-          <StatCard
-            label="Usuarios activos"
-            value={summary.usuariosActivos}
-            description="Miembros habilitados del equipo"
-            tone="blue"
-          />
-        </section>
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-stone-900">
-                  Personas por etapa
-                </h2>
-
-                <p className="mt-1 text-sm text-stone-500">
-                  Distribución actual del proceso.
-                </p>
-              </div>
-
-              <Link
-                href="/admin/personas"
-                className="text-sm font-semibold text-amber-700 hover:text-amber-800"
+        <section aria-labelledby="indicadores-title">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2
+                id="indicadores-title"
+                className="text-lg font-semibold text-stone-900"
               >
-                Ver personas
-              </Link>
-            </div>
+                Estado del proceso
+              </h2>
 
-            <div className="mt-6 space-y-4">
-              {summary.porEtapa.map((item) => {
-                const porcentaje =
-                  summary.totalPersonas > 0
-                    ? Math.round(
-                        (item.cantidad / summary.totalPersonas) * 100
-                      )
-                    : 0
-
-                return (
-                  <div key={item.etapa}>
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <span className="font-medium text-stone-700">
-                        Etapa {item.etapa} · {item.label}
-                      </span>
-
-                      <span className="font-semibold text-stone-900">
-                        {item.cantidad}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-100">
-                      <div
-                        className="h-full rounded-full bg-amber-500 transition-all"
-                        style={{ width: `${porcentaje}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+              <p className="mt-1 text-sm text-stone-500">
+                Selecciona un indicador para consultar su módulo.
+              </p>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-stone-900">
-              Acciones prioritarias
-            </h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="Personas registradas"
+              value={summary.totalPersonas}
+              description="Total de personas en el sistema"
+              href="/admin/personas"
+            />
 
-            <p className="mt-1 text-sm text-stone-500">
-              Elementos que requieren atención administrativa.
-            </p>
+            <StatCard
+              label="Personas nuevas"
+              value={summary.personasNuevas}
+              description="Pendientes de iniciar su proceso"
+              href="/admin/personas"
+              tone="amber"
+            />
+
+            <StatCard
+              label="Personas activas"
+              value={summary.personasActivas}
+              description="En proceso de consolidación"
+              href="/admin/personas"
+              tone="blue"
+            />
+
+            <StatCard
+              label="Personas consolidadas"
+              value={summary.personasConsolidadas}
+              description="Registradas como consolidadas"
+              href="/admin/personas"
+              tone="emerald"
+            />
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="prioridades-title"
+          className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]"
+        >
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <div>
+              <h2
+                id="prioridades-title"
+                className="text-lg font-semibold text-stone-900"
+              >
+                Requieren atención
+              </h2>
+
+              <p className="mt-1 text-sm leading-5 text-stone-500">
+                Accede directamente a los registros que necesitan gestión.
+              </p>
+            </div>
 
             <div className="mt-5 space-y-3">
               <Link
                 href="/admin/personas?asignacion=sin-asignar"
-                className="flex items-center justify-between rounded-2xl border border-red-100 bg-red-50 px-4 py-3 transition hover:border-red-200"
+                className="flex items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-4 transition hover:border-red-300"
               >
-                <span>
-                  <span className="block text-sm font-semibold text-red-900">
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-red-950">
                     Personas sin asignar
                   </span>
 
-                  <span className="mt-1 block text-xs text-red-700">
-                    Revisa y asigna responsables.
+                  <span className="mt-1 block text-xs leading-5 text-red-800">
+                    Revisa quién necesita un responsable.
                   </span>
                 </span>
 
-                <span className="text-lg font-bold text-red-700">
+                <span className="shrink-0 text-2xl font-bold tabular-nums text-red-800">
                   {summary.personasSinAsignar}
                 </span>
               </Link>
 
               <Link
                 href="/admin/seguimientos?estado=pendiente"
-                className="flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 transition hover:border-amber-200"
+                className="flex items-center justify-between gap-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-4 transition hover:border-amber-300"
               >
-                <span>
+                <span className="min-w-0">
                   <span className="block text-sm font-semibold text-amber-950">
                     Seguimientos pendientes
                   </span>
 
-                  <span className="mt-1 block text-xs text-amber-800">
-                    Consulta las acciones pendientes.
+                  <span className="mt-1 block text-xs leading-5 text-amber-800">
+                    Consulta las acciones que faltan por completar.
                   </span>
                 </span>
 
-                <span className="text-lg font-bold text-amber-800">
+                <span className="shrink-0 text-2xl font-bold tabular-nums text-amber-800">
                   {summary.seguimientosPendientes}
-                </span>
-              </Link>
-
-              <Link
-                href="/admin/equipo"
-                className="flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 transition hover:border-blue-200"
-              >
-                <span>
-                  <span className="block text-sm font-semibold text-blue-950">
-                    Equipo activo
-                  </span>
-
-                  <span className="mt-1 block text-xs text-blue-800">
-                    Consulta líderes y consolidadores.
-                  </span>
-                </span>
-
-                <span className="text-lg font-bold text-blue-800">
-                  {summary.usuariosActivos}
                 </span>
               </Link>
             </div>
           </div>
+
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-semibold text-stone-900">
+              Organización
+            </h2>
+
+            <p className="mt-1 text-sm leading-5 text-stone-500">
+              Recursos registrados y cobertura de responsables.
+            </p>
+
+            <dl className="mt-5 divide-y divide-stone-100">
+              <div className="flex items-center justify-between gap-3 py-3">
+                <dt className="text-sm text-stone-600">
+                  Casas de Avivamiento
+                </dt>
+                <dd className="text-lg font-semibold tabular-nums text-stone-900">
+                  {summary.casasAvivamiento}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 py-3">
+                <dt className="text-sm text-stone-600">
+                  Usuarios registrados
+                </dt>
+                <dd className="text-lg font-semibold tabular-nums text-stone-900">
+                  {summary.usuariosActivos}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 py-3">
+                <dt className="text-sm text-stone-600">
+                  Personas con responsable
+                </dt>
+                <dd className="text-lg font-semibold tabular-nums text-stone-900">
+                  {Math.max(
+                    0,
+                    summary.totalPersonas - summary.personasSinAsignar
+                  )}
+                </dd>
+              </div>
+            </dl>
+
+            <div className="mt-5 rounded-xl bg-stone-50 p-4">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-stone-700">
+                  Cobertura de asignación
+                </span>
+
+                <span className="font-semibold tabular-nums text-stone-900">
+                  {porcentajeAsignado}%
+                </span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-200">
+                <div
+                  className="h-full rounded-full bg-amber-600"
+                  style={{ width: `${porcentajeAsignado}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section className="mt-8">
+        <section
+          aria-labelledby="etapas-title"
+          className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2
+                id="etapas-title"
+                className="text-lg font-semibold text-stone-900"
+              >
+                Personas por etapa
+              </h2>
+
+              <p className="mt-1 text-sm leading-5 text-stone-500">
+                Distribución de las personas dentro del proceso.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/personas"
+              className="text-sm font-semibold text-amber-700 hover:underline"
+            >
+              Ver personas
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-5">
+            {summary.porEtapa.map((item) => {
+              const porcentaje =
+                summary.totalPersonas > 0
+                  ? Math.round(
+                      (item.cantidad / summary.totalPersonas) * 100
+                    )
+                  : 0
+
+              return (
+                <div key={item.etapa}>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="min-w-0 font-medium text-stone-700">
+                      {item.etapa}. {item.label}
+                    </span>
+
+                    <span className="shrink-0 font-semibold tabular-nums text-stone-900">
+                      {item.cantidad}
+                      <span className="ml-2 font-normal text-stone-500">
+                        {porcentaje}%
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-stone-100">
+                    <div
+                      className="h-full rounded-full bg-amber-600"
+                      style={{ width: `${porcentaje}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section aria-labelledby="modulos-title">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-stone-900">
-              Accesos administrativos
+            <h2
+              id="modulos-title"
+              className="text-lg font-semibold text-stone-900"
+            >
+              Explorar módulos
             </h2>
 
             <p className="mt-1 text-sm text-stone-500">
-              Abre un módulo para administrar la información correspondiente.
+              Consulta el detalle de cada área cuando lo necesites.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {modulos.map((modulo) => (
               <Link
                 key={modulo.href}
                 href={modulo.href}
-                className="group rounded-3xl border border-stone-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"
+                className="group flex min-h-36 flex-col justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <span className="text-3xl" aria-hidden="true">
-                    {modulo.icon}
-                  </span>
+                <div>
+                  <h3 className="font-semibold text-stone-900">
+                    {modulo.title}
+                  </h3>
 
-                  <span className="text-xl text-stone-300 transition group-hover:text-amber-500">
-                    →
-                  </span>
+                  <p className="mt-2 text-sm leading-6 text-stone-500">
+                    {modulo.description}
+                  </p>
                 </div>
 
-                <h3 className="mt-5 font-semibold text-stone-900">
-                  {modulo.title}
-                </h3>
-
-                <p className="mt-1 text-sm leading-6 text-stone-500">
-                  {modulo.description}
-                </p>
+                <span className="mt-4 text-xs font-semibold text-amber-700 group-hover:underline">
+                  Abrir módulo
+                </span>
               </Link>
             ))}
           </div>
