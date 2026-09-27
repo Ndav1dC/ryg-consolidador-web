@@ -47,8 +47,7 @@ function obtenerRoles(usuario: Usuario) {
       valores
         .filter(
           (rol): rol is string =>
-            typeof rol === "string" &&
-            rol.trim().length > 0
+            typeof rol === "string" && rol.trim().length > 0
         )
         .map((rol) => rol.trim())
     )
@@ -63,15 +62,12 @@ function clasesRol(rol: string) {
   if (rol === "admin") {
     return "border-violet-100 bg-violet-50 text-violet-800"
   }
-
   if (rol === "lider_casa") {
     return "border-blue-100 bg-blue-50 text-blue-800"
   }
-
   if (rol === "consolidador") {
     return "border-amber-100 bg-amber-50 text-amber-800"
   }
-
   return "border-stone-200 bg-stone-50 text-stone-700"
 }
 
@@ -79,10 +75,7 @@ function formatearFecha(fecha: string | null) {
   if (!fecha) return "No registrada"
 
   const valor = new Date(fecha)
-
-  if (Number.isNaN(valor.getTime())) {
-    return "No registrada"
-  }
+  if (Number.isNaN(valor.getTime())) return "No registrada"
 
   return new Intl.DateTimeFormat("es-CO", {
     day: "2-digit",
@@ -93,15 +86,11 @@ function formatearFecha(fecha: string | null) {
 
 function enlaceRol(buscar: string, rol: string) {
   const query = new URLSearchParams()
-
   if (buscar) query.set("buscar", buscar)
   if (rol) query.set("rol", rol)
 
   const cadena = query.toString()
-
-  return cadena
-    ? `/admin/equipo?${cadena}`
-    : "/admin/equipo"
+  return cadena ? `/admin/equipo?${cadena}` : "/admin/equipo"
 }
 
 export default async function AdminEquipoPage({
@@ -109,9 +98,7 @@ export default async function AdminEquipoPage({
 }: EquipoPageProps) {
   const currentUser = await getCurrentUserProfile()
 
-  if (!currentUser) {
-    redirect("/login")
-  }
+  if (!currentUser) redirect("/login")
 
   const rolesAdmin = currentUser.profile?.roles ?? []
   const rolPrincipal = currentUser.profile?.rol ?? ""
@@ -125,7 +112,6 @@ export default async function AdminEquipoPage({
 
   const params = await searchParams
   const buscar = params.buscar?.trim() ?? ""
-
   const rolSeleccionado = filtrosRol.some(
     (filtro) => filtro.value === params.rol
   )
@@ -143,24 +129,16 @@ export default async function AdminEquipoPage({
       .select("id, nombre, rol, roles, created_at")
       .order("nombre", { ascending: true }),
 
-    supabase
-      .from("personas")
-      .select("asignado_a_id"),
+    supabase.from("personas").select("asignado_a_id"),
   ])
 
   if (usuariosError) {
-    console.error(
-      "Error cargando usuarios administrativos:",
-      usuariosError
-    )
+    console.error("Error cargando equipo:", usuariosError)
     throw new Error("No se pudo cargar el equipo.")
   }
 
   if (personasError) {
-    console.error(
-      "Error contando personas asignadas:",
-      personasError
-    )
+    console.error("Error contando asignaciones:", personasError)
     throw new Error("No se pudieron cargar las asignaciones.")
   }
 
@@ -180,32 +158,28 @@ export default async function AdminEquipoPage({
   }
 
   const consolidadorCount = usuariosNormalizados.filter(
-    (usuario) =>
-      obtenerRoles(usuario).includes("consolidador")
+    (usuario) => obtenerRoles(usuario).includes("consolidador")
   ).length
 
   const liderCount = usuariosNormalizados.filter(
-    (usuario) =>
-      obtenerRoles(usuario).includes("lider_casa")
+    (usuario) => obtenerRoles(usuario).includes("lider_casa")
   ).length
 
   const textoBusqueda = buscar.toLocaleLowerCase("es-CO")
 
-  const usuariosFiltrados = usuariosNormalizados.filter(
-    (usuario) => {
-      const coincideNombre =
-        !textoBusqueda ||
-        (usuario.nombre ?? "")
-          .toLocaleLowerCase("es-CO")
-          .includes(textoBusqueda)
+  const usuariosFiltrados = usuariosNormalizados.filter((usuario) => {
+    const coincideNombre =
+      !textoBusqueda ||
+      (usuario.nombre ?? "")
+        .toLocaleLowerCase("es-CO")
+        .includes(textoBusqueda)
 
-      const coincideRol =
-        !rolSeleccionado ||
-        obtenerRoles(usuario).includes(rolSeleccionado)
+    const coincideRol =
+      !rolSeleccionado ||
+      obtenerRoles(usuario).includes(rolSeleccionado)
 
-      return coincideNombre && coincideRol
-    }
-  )
+    return coincideNombre && coincideRol
+  })
 
   return (
     <main className="min-h-screen min-w-0 bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
@@ -227,8 +201,7 @@ export default async function AdminEquipoPage({
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-            Encuentra integrantes, consulta sus roles y revisa
-            cuántas personas tienen asignadas.
+            Consulta los integrantes y abre las personas que tienen asignadas.
           </p>
         </header>
 
@@ -352,7 +325,6 @@ export default async function AdminEquipoPage({
             >
               Integrantes
             </h2>
-
             <p className="mt-1 text-sm text-stone-500">
               {usuariosFiltrados.length} de{" "}
               {usuariosNormalizados.length} usuarios
@@ -364,14 +336,9 @@ export default async function AdminEquipoPage({
               <p className="font-semibold text-stone-900">
                 No se encontraron integrantes
               </p>
-
-              <p className="mt-2 text-sm text-stone-500">
-                Prueba otra búsqueda o limpia el filtro de rol.
-              </p>
-
               <Link
                 href="/admin/equipo"
-                className="mt-4 inline-block text-sm font-semibold text-amber-700 hover:underline"
+                className="mt-3 inline-block text-sm font-semibold text-amber-700 hover:underline"
               >
                 Ver todo el equipo
               </Link>
@@ -416,8 +383,7 @@ export default async function AdminEquipoPage({
                             Personas asignadas
                           </dt>
                           <dd className="mt-1 font-semibold tabular-nums text-stone-900">
-                            {cantidadAsignada.get(usuario.id) ??
-                              0}
+                            {cantidadAsignada.get(usuario.id) ?? 0}
                           </dd>
                         </div>
 
@@ -426,12 +392,17 @@ export default async function AdminEquipoPage({
                             Registrado
                           </dt>
                           <dd className="mt-1 text-stone-700">
-                            {formatearFecha(
-                              usuario.created_at
-                            )}
+                            {formatearFecha(usuario.created_at)}
                           </dd>
                         </div>
                       </dl>
+
+                      <Link
+                        href={`/admin/equipo/${usuario.id}`}
+                        className="mt-4 block rounded-xl bg-stone-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-stone-700"
+                      >
+                        Ver personas asignadas
+                      </Link>
                     </article>
                   )
                 })}
@@ -464,6 +435,12 @@ export default async function AdminEquipoPage({
                         className="px-5 py-4 font-semibold"
                       >
                         Registrado
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-4 font-semibold"
+                      >
+                        Acción
                       </th>
                     </tr>
                   </thead>
@@ -503,14 +480,20 @@ export default async function AdminEquipoPage({
                           </td>
 
                           <td className="px-5 py-4 font-semibold tabular-nums text-stone-800">
-                            {cantidadAsignada.get(usuario.id) ??
-                              0}
+                            {cantidadAsignada.get(usuario.id) ?? 0}
                           </td>
 
                           <td className="px-5 py-4 text-stone-600">
-                            {formatearFecha(
-                              usuario.created_at
-                            )}
+                            {formatearFecha(usuario.created_at)}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <Link
+                              href={`/admin/equipo/${usuario.id}`}
+                              className="text-xs font-semibold text-amber-700 hover:underline"
+                            >
+                              Ver personas
+                            </Link>
                           </td>
                         </tr>
                       )
