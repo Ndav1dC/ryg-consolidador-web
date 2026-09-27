@@ -132,10 +132,11 @@ export default async function AdminReportesPage({
   const params = await searchParams
   const actual = anioActualColombia()
   const solicitado = Number(params.anio)
+
   const anio =
     params.anio &&
     Number.isInteger(solicitado) &&
-    solicitado >= 2000 &&
+    solicitado >= 2026 &&
     solicitado <= actual
       ? solicitado
       : actual
@@ -146,14 +147,14 @@ export default async function AdminReportesPage({
   ])
 
   const opcionesAnio = Array.from(
-    { length: actual - 2020 + 1 },
+    { length: Math.max(1, actual - 2026 + 1) },
     (_, indice) => actual - indice
   )
 
   return (
     <main className="min-h-screen min-w-0 bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-col gap-5 border-b border-stone-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-5 border-b border-stone-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Link
               href="/admin"
@@ -171,48 +172,57 @@ export default async function AdminReportesPage({
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-              Actividad mes a mes y estado actual de las personas
-              registradas durante el año seleccionado.
+              Consulta la actividad mes a mes y el estado actual de
+              las personas registradas durante el año seleccionado.
             </p>
           </div>
 
-          <form
-            action="/admin/reportes"
-            method="get"
-            className="flex items-end gap-2"
-          >
-            <div>
-              <label
-                htmlFor="anio"
-                className="mb-1 block text-xs font-semibold text-stone-600"
-              >
-                Año
-              </label>
-
-              <select
-                id="anio"
-                name="anio"
-                defaultValue={String(anio)}
-                className="rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900"
-              >
-                {opcionesAnio.map((opcion) => (
-                  <option
-                    key={opcion}
-                    value={opcion}
-                  >
-                    {opcion}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              className="rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700"
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <form
+              action="/admin/reportes"
+              method="get"
+              className="flex items-end gap-2"
             >
-              Ver año
-            </button>
-          </form>
+              <div>
+                <label
+                  htmlFor="anio"
+                  className="mb-1 block text-xs font-semibold text-stone-600"
+                >
+                  Año
+                </label>
+
+                <select
+                  id="anio"
+                  name="anio"
+                  defaultValue={String(anio)}
+                  className="rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900"
+                >
+                  {opcionesAnio.map((opcion) => (
+                    <option
+                      key={opcion}
+                      value={opcion}
+                    >
+                      {opcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                className="rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700"
+              >
+                Ver año
+              </button>
+            </form>
+
+            <a
+              href={`/admin/reportes/pdf?anio=${anio}`}
+              className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+            >
+              Descargar PDF de {anio}
+            </a>
+          </div>
         </header>
 
         <section
