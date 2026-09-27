@@ -1,5 +1,8 @@
 import Link from "next/link"
+
 import { getAdminSummary } from "@/lib/data/admin"
+import { getReporteAnual } from "@/lib/data/reportes-anuales"
+import { ResumenAdminCharts } from "@/components/dashboard/resumen-admin-charts"
 
 const modulos = [
   {
@@ -25,7 +28,7 @@ const modulos = [
   {
     href: "/admin/reportes",
     title: "Reportes",
-    description: "Explora los datos y el avance del proceso.",
+    description: "Explora el avance anual y descarga informes.",
   },
 ]
 
@@ -34,7 +37,7 @@ type StatCardProps = {
   value: number
   description: string
   href: string
-  tone?: "stone" | "amber" | "blue" | "emerald" | "red"
+  tone?: "stone" | "amber" | "blue" | "emerald"
 }
 
 function StatCard({
@@ -44,18 +47,18 @@ function StatCard({
   href,
   tone = "stone",
 }: StatCardProps) {
-  const tones = {
+  const tonos = {
     stone: "border-stone-200 bg-white text-stone-900",
     amber: "border-amber-200 bg-amber-50 text-amber-950",
     blue: "border-blue-200 bg-blue-50 text-blue-950",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-950",
-    red: "border-red-200 bg-red-50 text-red-950",
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-950",
   }
 
   return (
     <Link
       href={href}
-      className={`group flex min-w-0 flex-col rounded-2xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tones[tone]}`}
+      className={`group flex min-w-0 flex-col rounded-2xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tonos[tone]}`}
     >
       <span className="text-sm font-medium opacity-75">
         {label}
@@ -76,51 +79,102 @@ function StatCard({
   )
 }
 
+function anioActualColombia() {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Bogota",
+      year: "numeric",
+    }).format(new Date())
+  )
+}
+
 export default async function AdminPage() {
-  const summary = await getAdminSummary()
+  const anio = anioActualColombia()
+
+  const [summary, reporteAnual] = await Promise.all([
+    getAdminSummary(),
+    getReporteAnual(anio),
+  ])
 
   const porcentajeAsignado =
     summary.totalPersonas > 0
       ? Math.round(
-          ((summary.totalPersonas - summary.personasSinAsignar) /
+          ((summary.totalPersonas -
+            summary.personasSinAsignar) /
             summary.totalPersonas) *
             100
         )
       : 0
 
+  const otrosEstados = Math.max(
+    0,
+    summary.totalPersonas -
+      summary.personasNuevas -
+      summary.personasActivas -
+      summary.personasConsolidadas
+  )
+
+  const estados = [
+    {
+      nombre: "Nuevas",
+      cantidad: summary.personasNuevas,
+      color: "#a78bfa",
+    },
+    {
+      nombre: "Activas",
+      cantidad: summary.personasActivas,
+      color: "#60a5fa",
+    },
+    {
+      nombre: "Consolidadas",
+      cantidad: summary.personasConsolidadas,
+      color: "#34d399",
+    },
+    {
+      nombre: "Otros estados",
+      cantidad: otrosEstados,
+      color: "#a8a29e",
+    },
+  ]
+
   return (
     <main className="min-h-screen min-w-0 bg-stone-50 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-7xl space-y-7">
-        <header className="border-b border-stone-200 pb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-            Módulo administrativo
-          </p>
+        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 pb-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+              Módulo administrativo
+            </p>
 
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
-            Resumen general
-          </h1>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+              Resumen general
+            </h1>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-            Una vista rápida de las personas, las asignaciones y el
-            seguimiento del proceso.
-          </p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+              Indicadores actuales y una vista rápida de la actividad
+              del año.
+            </p>
+          </div>
+
+          <Link
+            href={`/admin/reportes?anio=${anio}`}
+            className="inline-flex rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-100"
+          >
+            Ver reporte completo
+          </Link>
         </header>
 
         <section aria-labelledby="indicadores-title">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h2
-                id="indicadores-title"
-                className="text-lg font-semibold text-stone-900"
-              >
-                Estado del proceso
-              </h2>
+          <h2
+            id="indicadores-title"
+            className="mb-1 text-lg font-semibold text-stone-900"
+          >
+            Estado del proceso
+          </h2>
 
-              <p className="mt-1 text-sm text-stone-500">
-                Selecciona un indicador para consultar su módulo.
-              </p>
-            </div>
-          </div>
+          <p className="mb-4 text-sm text-stone-500">
+            Totales actuales del sistema.
+          </p>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
@@ -134,7 +188,7 @@ export default async function AdminPage() {
               label="Personas nuevas"
               value={summary.personasNuevas}
               description="Pendientes de iniciar su proceso"
-              href="/admin/personas"
+              href="/admin/personas?estado=nuevo"
               tone="amber"
             />
 
@@ -142,7 +196,7 @@ export default async function AdminPage() {
               label="Personas activas"
               value={summary.personasActivas}
               description="En proceso de consolidación"
-              href="/admin/personas"
+              href="/admin/personas?estado=activo"
               tone="blue"
             />
 
@@ -150,10 +204,18 @@ export default async function AdminPage() {
               label="Personas consolidadas"
               value={summary.personasConsolidadas}
               description="Registradas como consolidadas"
-              href="/admin/personas"
+              href="/admin/personas?estado=consolidado"
               tone="emerald"
             />
           </div>
+        </section>
+
+        <section aria-label="Gráficas del resumen">
+          <ResumenAdminCharts
+            meses={reporteAnual.meses}
+            estados={estados}
+            anio={anio}
+          />
         </section>
 
         <section
@@ -161,23 +223,21 @@ export default async function AdminPage() {
           className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]"
         >
           <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
-            <div>
-              <h2
-                id="prioridades-title"
-                className="text-lg font-semibold text-stone-900"
-              >
-                Requieren atención
-              </h2>
+            <h2
+              id="prioridades-title"
+              className="text-lg font-semibold text-stone-900"
+            >
+              Requieren atención
+            </h2>
 
-              <p className="mt-1 text-sm leading-5 text-stone-500">
-                Accede directamente a los registros que necesitan gestión.
-              </p>
-            </div>
+            <p className="mt-1 text-sm leading-5 text-stone-500">
+              Registros que necesitan gestión administrativa.
+            </p>
 
             <div className="mt-5 space-y-3">
               <Link
                 href="/admin/personas?asignacion=sin-asignar"
-                className="flex items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-4 transition hover:border-red-300"
+                className="flex items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-4 hover:border-red-300"
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-red-950">
@@ -196,7 +256,7 @@ export default async function AdminPage() {
 
               <Link
                 href="/admin/seguimientos?estado=pendiente"
-                className="flex items-center justify-between gap-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-4 transition hover:border-amber-300"
+                className="flex items-center justify-between gap-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-4 hover:border-amber-300"
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-amber-950">
@@ -204,7 +264,7 @@ export default async function AdminPage() {
                   </span>
 
                   <span className="mt-1 block text-xs leading-5 text-amber-800">
-                    Consulta las acciones que faltan por completar.
+                    Consulta las acciones por completar.
                   </span>
                 </span>
 
@@ -250,7 +310,8 @@ export default async function AdminPage() {
                 <dd className="text-lg font-semibold tabular-nums text-stone-900">
                   {Math.max(
                     0,
-                    summary.totalPersonas - summary.personasSinAsignar
+                    summary.totalPersonas -
+                      summary.personasSinAsignar
                   )}
                 </dd>
               </div>
@@ -270,7 +331,9 @@ export default async function AdminPage() {
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-200">
                 <div
                   className="h-full rounded-full bg-amber-600"
-                  style={{ width: `${porcentajeAsignado}%` }}
+                  style={{
+                    width: `${porcentajeAsignado}%`,
+                  }}
                 />
               </div>
             </div>
@@ -291,7 +354,7 @@ export default async function AdminPage() {
               </h2>
 
               <p className="mt-1 text-sm leading-5 text-stone-500">
-                Distribución de las personas dentro del proceso.
+                Distribución actual del proceso.
               </p>
             </div>
 
@@ -308,7 +371,9 @@ export default async function AdminPage() {
               const porcentaje =
                 summary.totalPersonas > 0
                   ? Math.round(
-                      (item.cantidad / summary.totalPersonas) * 100
+                      (item.cantidad /
+                        summary.totalPersonas) *
+                        100
                     )
                   : 0
 
@@ -330,7 +395,9 @@ export default async function AdminPage() {
                   <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-stone-100">
                     <div
                       className="h-full rounded-full bg-amber-600"
-                      style={{ width: `${porcentaje}%` }}
+                      style={{
+                        width: `${porcentaje}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -349,7 +416,7 @@ export default async function AdminPage() {
             </h2>
 
             <p className="mt-1 text-sm text-stone-500">
-              Consulta el detalle de cada área cuando lo necesites.
+              Abre un área para consultar su detalle.
             </p>
           </div>
 
