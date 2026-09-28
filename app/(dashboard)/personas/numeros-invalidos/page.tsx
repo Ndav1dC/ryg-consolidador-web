@@ -18,14 +18,36 @@ type SeguimientoInvalido = {
   fecha: string | null
 }
 
-function formatearFecha(fecha: string | null) {
+function formatearFecha(fecha: string | null | undefined) {
   if (!fecha) return "Sin fecha"
+
+  // Acepta tanto YYYY-MM-DD como una fecha con hora de Supabase.
+  const coincidencia = fecha
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T ])/)
+
+  if (!coincidencia) return "Fecha no disponible"
+
+  const [, anio, mes, dia] = coincidencia
+  const fechaValida = new Date(
+    `${anio}-${mes}-${dia}T12:00:00Z`
+  )
+
+  if (
+    Number.isNaN(fechaValida.getTime()) ||
+    fechaValida.getUTCFullYear() !== Number(anio) ||
+    fechaValida.getUTCMonth() + 1 !== Number(mes) ||
+    fechaValida.getUTCDate() !== Number(dia)
+  ) {
+    return "Fecha no disponible"
+  }
 
   return new Intl.DateTimeFormat("es-CO", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(`${fecha}T12:00:00`))
+    timeZone: "America/Bogota",
+  }).format(fechaValida)
 }
 
 export default async function NumerosInvalidosPage() {
@@ -56,12 +78,13 @@ export default async function NumerosInvalidosPage() {
     redirect("/personas")
   }
 
-  const { data: seguimientos, error: seguimientosError } = await supabase
-    .from("seguimientos")
-    .select("persona_id, fecha")
-    .eq("consolidador_id", usuario.id)
-    .eq("resultado", "numero_invalido")
-    .order("fecha", { ascending: false })
+  const { data: seguimientos, error: seguimientosError } =
+    await supabase
+      .from("seguimientos")
+      .select("persona_id, fecha")
+      .eq("consolidador_id", usuario.id)
+      .eq("resultado", "numero_invalido")
+      .order("fecha", { ascending: false })
 
   if (seguimientosError) {
     throw new Error(
@@ -70,24 +93,27 @@ export default async function NumerosInvalidosPage() {
   }
 
   const seguimientosInvalidos =
-    ((seguimientos ?? []) as unknown as SeguimientoInvalido[])
+    (seguimientos ?? []) as SeguimientoInvalido[]
 
   const personaIds = [
     ...new Set(
-      seguimientosInvalidos.map((seguimiento) => seguimiento.persona_id)
+      seguimientosInvalidos.map(
+        (seguimiento) => seguimiento.persona_id
+      )
     ),
   ]
 
   let numerosInvalidos: PersonaNumeroInvalido[] = []
 
   if (personaIds.length > 0) {
-    const { data: personas, error: personasError } = await supabase
-      .from("personas")
-      .select(
-        "id, nombre_completo, celular, created_at, ultima_gestion_fecha"
-      )
-      .in("id", personaIds)
-      .eq("numero_invalido", true)
+    const { data: personas, error: personasError } =
+      await supabase
+        .from("personas")
+        .select(
+          "id, nombre_completo, celular, created_at, ultima_gestion_fecha"
+        )
+        .in("id", personaIds)
+        .eq("numero_invalido", true)
 
     if (personasError) {
       throw new Error(
@@ -96,10 +122,11 @@ export default async function NumerosInvalidosPage() {
     }
 
     numerosInvalidos =
-      ((personas ?? []) as unknown as PersonaNumeroInvalido[])
+      (personas ?? []) as PersonaNumeroInvalido[]
   }
 
-  const fechaInvalidaPorPersona = new Map<string, string | null>()
+  const fechaInvalidaPorPersona =
+    new Map<string, string | null>()
 
   for (const seguimiento of seguimientosInvalidos) {
     if (!fechaInvalidaPorPersona.has(seguimiento.persona_id)) {
@@ -111,8 +138,10 @@ export default async function NumerosInvalidosPage() {
   }
 
   numerosInvalidos.sort((a, b) => {
-    const fechaA = fechaInvalidaPorPersona.get(a.id) ?? ""
-    const fechaB = fechaInvalidaPorPersona.get(b.id) ?? ""
+    const fechaA =
+      fechaInvalidaPorPersona.get(a.id) ?? ""
+    const fechaB =
+      fechaInvalidaPorPersona.get(b.id) ?? ""
 
     return fechaB.localeCompare(fechaA)
   })
@@ -133,15 +162,18 @@ export default async function NumerosInvalidosPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-            Aquí aparecen únicamente las personas que tú marcaste con número
-            inválido. Corrige el celular para reactivarlas en la Etapa 1, o
-            elimínalas si fueron registradas por error.
+            Aquí aparecen únicamente las personas que tú marcaste
+            con número inválido. Corrige el celular para
+            reactivarlas en la Etapa 1, o elimínalas si fueron
+            registradas por error.
           </p>
         </div>
 
         <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
           {numerosInvalidos.length}{" "}
-          {numerosInvalidos.length === 1 ? "persona" : "personas"}
+          {numerosInvalidos.length === 1
+            ? "persona"
+            : "personas"}
         </div>
       </div>
 
@@ -152,7 +184,8 @@ export default async function NumerosInvalidosPage() {
           </h2>
 
           <p className="mt-2 text-sm text-stone-600">
-            Las personas que marques como “Número inválido” aparecerán aquí.
+            Las personas que marques como “Número inválido”
+            aparecerán aquí.
           </p>
         </section>
       ) : (
@@ -164,7 +197,10 @@ export default async function NumerosInvalidosPage() {
                 persona.ultima_gestion_fecha
 
               return (
-                <article key={persona.id} className="p-5 sm:p-6">
+                <article
+                  key={persona.id}
+                  className="p-5 sm:p-6"
+                >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h2 className="text-lg font-semibold text-stone-900">
@@ -187,7 +223,11 @@ export default async function NumerosInvalidosPage() {
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-                      <form action={corregirYReactivarNumeroAction}>
+                      <form
+                        action={
+                          corregirYReactivarNumeroAction
+                        }
+                      >
                         <input
                           type="hidden"
                           name="persona_id"
@@ -198,7 +238,9 @@ export default async function NumerosInvalidosPage() {
                           <input
                             name="celular"
                             type="tel"
-                            defaultValue={persona.celular || ""}
+                            defaultValue={
+                              persona.celular || ""
+                            }
                             placeholder="Nuevo celular"
                             className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-amber-500 sm:w-48"
                             required
@@ -215,7 +257,9 @@ export default async function NumerosInvalidosPage() {
 
                       <BotonEliminar
                         personaId={persona.id}
-                        nombrePersona={persona.nombre_completo}
+                        nombrePersona={
+                          persona.nombre_completo
+                        }
                       />
                     </div>
                   </div>
