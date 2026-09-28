@@ -1,57 +1,110 @@
-RYG Consolidator Web
-Aplicación web para gestionar el proceso de consolidación de personas, seguimientos, usuarios y Casas de Avivamiento.
+# R&G · Consolidador Web
 
-El proyecto está orientado al trabajo de consolidadores, líderes y administradores, con control de acceso por roles y una base de datos centralizada.
+Aplicación web para gestionar el acompañamiento de personas en el proceso de consolidación de Reino y Gloria. Reúne asignaciones, seguimiento por etapas, discipulado, Casas de Avivamiento y reportes administrativos en una interfaz adaptable a escritorio y móvil.
 
-Características
-Registro y consulta de personas.
+> **Acceso:** sistema de uso interno. Los datos de personas requieren una cuenta autorizada; no publiques exportaciones ni credenciales de Supabase en el repositorio.
 
-Gestión de personas nuevas.
+## Funcionalidades
 
-Seguimiento de procesos de consolidación.
+- **Gestión de personas:** registros nuevos, asignación de responsables, consulta de detalles, estados y trazabilidad de seguimientos.
+- **Seguimiento por etapas:** primera llamada, confirmación de regreso al culto, asignación a Casa de Avivamiento, discipulado y cierre del proceso.
+- **Visitas y números inválidos:** programación y confirmación de visitas, revisión de teléfonos marcados como inválidos, corrección y reactivación.
+- **Discipulado:** Nivel 1 y Nivel 2; al completar ambos se habilita la Etapa 5.
+- **Casas de Avivamiento:** relación entre persona, casa y líder responsable.
+- **Administración:** vistas de personas, equipo, casas y seguimientos; indicadores y gráficas del proceso.
+- **Reportes anuales:** datos mensuales, resumen por año desde 2026 y exportación de cifras agregadas a PDF.
 
-Registro de seguimientos nuevos.
+## Roles y flujo
 
-Gestión de números inválidos.
+| Rol | Responsabilidad principal |
+| --- | --- |
+| Consolidador | Atiende las etapas 1 a 3: llamada, asistencia y asignación a una Casa de Avivamiento. |
+| Líder de Casa | Registra el discipulado de dos niveles y la Etapa 5. |
+| Administrador | Supervisa personas, responsables, casas, actividad y reportes. |
 
-Consulta de perfiles y detalle de personas.
+El proceso avanza así:
 
-Panel para consolidadores y líderes.
+```text
+Persona nueva → Etapa 1: llamada → Etapa 2: asistencia
+→ Etapa 3: Casa de Avivamiento → Etapa 4: discipulado (Niveles 1 y 2)
+→ Etapa 5: departamento y cierre → Consolidado
+```
 
-Módulo administrativo.
+El cierre de la Etapa 5 puede registrar que la persona sirve en un departamento o que aún no tiene uno; en ambos casos el proceso termina como **consolidado**. La asignación a casa y líder se conserva como relación de la persona. Los textos `casa` y `lider` en un seguimiento corresponden al dato registrado en esa gestión y no tienen que repetirse en cada seguimiento posterior.
 
-Gestión de usuarios y roles.
+## Tecnologías
 
-Integración con Supabase Authentication.
+- Next.js (App Router), React y TypeScript.
+- Tailwind CSS para la interfaz.
+- Supabase Auth y PostgreSQL para autenticación y datos.
+- Vercel para despliegue y Web Analytics.
 
-Base de datos PostgreSQL mediante Supabase.
+Las gráficas y la generación de PDF están implementadas en los módulos de reportes del proyecto.
 
-Despliegue preparado para Vercel.
+## Requisitos y configuración
 
-Métricas de navegación mediante Vercel Web Analytics.
+Necesitas Node.js y npm, un proyecto de Supabase configurado con las tablas y políticas de acceso requeridas, y credenciales de ese proyecto. Los usuarios y sus roles deben existir en la base de datos; instalar las dependencias no crea por sí solo el esquema de Supabase.
 
-Diseño adaptable para dispositivos móviles y escritorio.
+1. Clona el repositorio e instala dependencias:
 
-Tecnologías
-Next.js con App Router.
+   ```bash
+   git clone https://github.com/Ndav1dC/ryg-consolidador-web.git
+   cd ryg-consolidador-web
+   npm ci
+   ```
 
-React.
+2. Crea `.env.local` en la raíz y configura las variables públicas usadas por el cliente de Supabase:
 
-TypeScript.
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_publicable
+   ```
 
-Tailwind CSS.
+   Si la configuración de tu entorno utiliza otras variables de servidor, configúralas según `lib/supabase/` y mantenlas exclusivamente del lado del servidor. Nunca subas `.env.local`, contraseñas ni la clave `service_role`.
 
-Supabase para autenticación, base de datos y API.
+3. Inicia el entorno local:
 
-Vercel para despliegue y Web Analytics.
+   ```bash
+   npm run dev
+   ```
 
-Requisitos
-Antes de ejecutar el proyecto necesitas:
+4. Antes de publicar cambios, comprueba TypeScript y la compilación:
 
-Node.js 20 o superior recomendado.
+   ```bash
+   npx tsc --noEmit
+   npm run build
+   ```
 
-npm
+## Estructura principal
 
-Un proyecto configurado en Supabase.
+```text
+app/
+  (auth)/login/                  Inicio de sesión
+  (dashboard)/personas/          Listas y detalle de personas
+  (dashboard)/seguimientos/      Historial y registro de gestiones
+  (dashboard)/admin/             Resumen, equipo, casas y reportes
+components/                      Interfaz reutilizable
+lib/auth/                         Perfil y controles de acceso
+lib/data/                         Consultas de negocio
+lib/supabase/                     Clientes y configuración de Supabase
+public/                           Recursos estáticos
+types/                            Tipos compartidos
+```
 
-Variables de entorno de Supabase.
+Las carpetas entre paréntesis son grupos de rutas de Next.js y no forman parte de la URL. Algunas rutas importantes son `/login`, `/personas`, `/personas/nuevos`, `/personas/numeros-invalidos`, `/seguimientos/nuevo`, `/admin` y `/admin/reportes`.
+
+## Datos y seguridad
+
+Las tablas principales son `personas`, `usuarios`, `casas_avivamiento`, `seguimientos`, `discipulado` y `notificaciones`. `personas.asignado_a_id` identifica al responsable y `personas.casa_avivamiento_id` identifica la casa; las filas de seguimiento registran las acciones realizadas. Las pantallas y las acciones del servidor aplican reglas por rol; las políticas de Row Level Security (RLS) de Supabase deben complementarlas.
+
+**Importante para nuevos entornos:** la política RLS que permite a consolidadores consultar `casas_avivamiento` al registrar la Etapa 3 fue aplicada manualmente en Supabase. Comprueba que esté presente también en cualquier otra base de datos antes de desplegar allí. El estado de la base de datos y las correcciones puntuales de registros no se transfieren al hacer merge en GitHub.
+
+Los reportes muestran cifras agregadas. Evita incluir datos personales en capturas, repositorios públicos o archivos exportados sin autorización. No uses datos reales para pruebas destructivas.
+
+## Despliegue
+
+Conecta el repositorio a Vercel, establece las variables de entorno de Supabase en la configuración del proyecto y verifica que el entorno de destino tenga el esquema y las políticas RLS necesarios. Después del despliegue, prueba inicio de sesión, cambio de rol, asignación de casa, avance por las cinco etapas, números inválidos y exportación PDF.
+
+## Estado del proyecto
+
+Proyecto de uso interno en evolución. Los cambios en el flujo de negocio y en la base de datos deben probarse con personas de prueba identificadas antes de aplicarlos a registros operativos.
