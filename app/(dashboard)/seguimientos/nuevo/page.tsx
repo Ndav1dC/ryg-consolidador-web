@@ -12,7 +12,7 @@ type Props = {
   }>
 }
 
-type NivelDiscipulado = "Nivel 1" | "Nivel 2" | "Nivel 3"
+type NivelDiscipulado = "Nivel 1" | "Nivel 2"
 
 function normalizePersonaId(value?: string) {
   if (!value || value === "undefined" || value === "null") {
@@ -32,7 +32,9 @@ function normalizePaso(value?: string) {
   return paso
 }
 
-function getNivelesCompletados(nivelActual: number): NivelDiscipulado[] {
+function getNivelesCompletados(
+  nivelActual: number
+): NivelDiscipulado[] {
   const niveles: NivelDiscipulado[] = []
 
   if (nivelActual >= 1) {
@@ -41,10 +43,6 @@ function getNivelesCompletados(nivelActual: number): NivelDiscipulado[] {
 
   if (nivelActual >= 2) {
     niveles.push("Nivel 2")
-  }
-
-  if (nivelActual >= 3) {
-    niveles.push("Nivel 3")
   }
 
   return niveles
@@ -83,7 +81,9 @@ function getRolActivo(
   return "consolidador"
 }
 
-export default async function NuevoSeguimientoPage({ searchParams }: Props) {
+export default async function NuevoSeguimientoPage({
+  searchParams,
+}: Props) {
   const params = await searchParams
   const selectedPersonaId = normalizePersonaId(params.personaId)
   const pasoUrl = normalizePaso(params.paso)
@@ -105,18 +105,19 @@ export default async function NuevoSeguimientoPage({ searchParams }: Props) {
   } | null = null
 
   let nivelesDiscipulado: NivelDiscipulado[] = []
-
   let etapaActual = rolActivo === "lider_casa" ? 4 : 1
 
   if (selectedPersonaId) {
-    const personaSeleccionada = await getPersonaById(selectedPersonaId)
+    const personaSeleccionada =
+      await getPersonaById(selectedPersonaId)
 
     if (!personaSeleccionada) {
       personas = []
     } else {
       personas = [personaSeleccionada]
 
-      const etapaPersona = Number(personaSeleccionada.etapa_actual) || 1
+      const etapaPersona =
+        Number(personaSeleccionada.etapa_actual) || 1
 
       const supabase = await createClient()
 
@@ -130,19 +131,26 @@ export default async function NuevoSeguimientoPage({ searchParams }: Props) {
           .eq("persona_id", selectedPersonaId)
           .eq("tipo", "visita")
           .eq("estado", "pendiente")
-          .order("fecha_programada", { ascending: true })
+          .order("fecha_programada", {
+            ascending: true,
+          })
           .limit(1)
           .maybeSingle(),
 
         supabase
           .from("discipulado")
-          .select("nivel_actual, fecha_inicio, fecha_completado")
+          .select(
+            "nivel_actual, fecha_inicio, fecha_completado"
+          )
           .eq("persona_id", selectedPersonaId)
           .maybeSingle(),
       ])
 
       if (visitaError) {
-        console.error("Error consultando visita pendiente:", visitaError)
+        console.error(
+          "Error consultando visita pendiente:",
+          visitaError
+        )
       }
 
       if (discipuladoError) {
@@ -155,30 +163,31 @@ export default async function NuevoSeguimientoPage({ searchParams }: Props) {
       visitaPendiente = visitaData
 
       const nivelActualDiscipulado = Math.min(
-        Math.max(Number(discipuladoData?.nivel_actual) || 0, 0),
+        Math.max(
+          Number(discipuladoData?.nivel_actual) || 0,
+          0
+        ),
         3
       )
 
-      nivelesDiscipulado = getNivelesCompletados(nivelActualDiscipulado)
+      nivelesDiscipulado = getNivelesCompletados(
+        nivelActualDiscipulado
+      )
 
-      const discipuladoCompleto = nivelActualDiscipulado === 3
+      const discipuladoCompleto =
+        nivelActualDiscipulado >= 2
 
       if (rolActivo === "lider_casa") {
-        /*
-         * La Etapa 4 continúa hasta terminar los tres niveles.
-         * Solo Nivel 3 completo habilita la Etapa 5.
-         */
         etapaActual = discipuladoCompleto ? 5 : 4
       } else {
-        /*
-         * Para consolidador o admin se respeta la etapa guardada
-         * en la persona. El parámetro URL es solo respaldo.
-         */
-        etapaActual = etapaPersona || pasoUrl || etapaActual
+        etapaActual =
+          etapaPersona || pasoUrl || etapaActual
       }
     }
   } else if (userId) {
-    personas = personas.filter((persona) => persona.asignado_a_id === userId)
+    personas = personas.filter(
+      (persona) => persona.asignado_a_id === userId
+    )
   }
 
   return (
@@ -191,8 +200,9 @@ export default async function NuevoSeguimientoPage({ searchParams }: Props) {
       <section className="px-4 py-6 lg:px-8">
         <div className="mx-auto max-w-5xl space-y-6">
           <div className="rounded-3xl border border-amber-100 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            Completa la información principal del seguimiento y guárdala en el
-            historial de la persona.
+            Completa la información principal del
+            seguimiento y guárdala en el historial de la
+            persona.
           </div>
 
           <CreateSeguimientoForm

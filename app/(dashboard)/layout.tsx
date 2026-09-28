@@ -38,7 +38,9 @@ export default function DashboardLayout({ children }: Props) {
 
         if (userDataCookie) {
           try {
-            const userData = JSON.parse(decodeURIComponent(userDataCookie))
+            const userData = JSON.parse(
+              decodeURIComponent(userDataCookie)
+            )
 
             setUserNombre(userData.nombre || "Usuario")
             setRoles(userData.roles || ["consolidador"])
@@ -93,7 +95,7 @@ export default function DashboardLayout({ children }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen overflow-x-hidden bg-stone-50">
       <div className="lg:grid lg:min-h-screen lg:grid-cols-[288px_minmax(0,1fr)]">
         <Sidebar
           userNombre={userNombre}
@@ -101,10 +103,10 @@ export default function DashboardLayout({ children }: Props) {
           roles={roles}
         />
 
-        <div className="min-w-0 pb-20 lg:pb-0">
-          <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 lg:px-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-stone-500">
+        <div className="min-w-0 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0">
+          <div className="flex min-w-0 items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3 lg:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="truncate text-sm text-stone-500">
                 {rolActivo === "consolidador" && "Consolidador"}
                 {rolActivo === "lider_casa" && "Líder de Casa"}
                 {rolActivo === "admin" && "Administrador"}
