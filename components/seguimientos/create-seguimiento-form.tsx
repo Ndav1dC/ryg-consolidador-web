@@ -177,9 +177,7 @@ function StepOneFields() {
 function StepTwoFields() {
   return (
     <div>
-      <FieldLabel htmlFor="resultado">
-        ¿Asistió nuevamente al culto?
-      </FieldLabel>
+      <FieldLabel htmlFor="resultado">¿Asistió nuevamente al culto?</FieldLabel>
       <BaseSelect id="resultado" name="resultado" defaultValue="sí" required>
         <option value="sí">Sí</option>
         <option value="no">No</option>
@@ -191,7 +189,6 @@ function StepTwoFields() {
 function StepThreeFields() {
   const [selectedLider, setSelectedLider] = useState("")
   const lideres = Object.keys(lideresCasas) as Array<keyof typeof lideresCasas>
-
   const casaAutomatica = selectedLider
     ? lideresCasas[selectedLider as keyof typeof lideresCasas]
     : ""
@@ -199,9 +196,7 @@ function StepThreeFields() {
   return (
     <>
       <div>
-        <FieldLabel htmlFor="lider">
-          Selecciona el Líder de Casa
-        </FieldLabel>
+        <FieldLabel htmlFor="lider">Selecciona el Líder de Casa</FieldLabel>
         <BaseSelect
           id="lider"
           name="lider"
@@ -245,12 +240,10 @@ function StepFourFields({
 
   return (
     <div className="lg:col-span-2">
-      <FieldLabel htmlFor="nivel_discipulado">
-        Nivel de discipulado
-      </FieldLabel>
+      <FieldLabel htmlFor="nivel_discipulado">Nivel de discipulado</FieldLabel>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        {["Nivel 1", "Nivel 2", "Nivel 3"].map((nivel) => {
+        {["Nivel 1", "Nivel 2"].map((nivel) => {
           const completado = nivelesCompletados.includes(nivel)
 
           return (
@@ -280,11 +273,7 @@ function StepFourFields({
         <option value={nivelSiguiente}>{nivelSiguiente}</option>
       </BaseSelect>
 
-      <input
-        type="hidden"
-        name="nivel_discipulado"
-        value={nivelSiguiente}
-      />
+      <input type="hidden" name="nivel_discipulado" value={nivelSiguiente} />
 
       <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4">
         <FieldLabel htmlFor="termino_nivel">
@@ -301,8 +290,8 @@ function StepFourFields({
           <option value="" disabled>
             Selecciona una respuesta
           </option>
-          <option value="sí">En formación</option>
-          <option value="no">No continuó.</option>
+          <option value="sí">Sí, terminó este nivel</option>
+          <option value="no">No, continúa en este nivel</option>
         </BaseSelect>
 
         {terminoNivel ? (
@@ -315,8 +304,8 @@ function StepFourFields({
       </div>
 
       <p className="mt-3 text-xs text-stone-500">
-        Cada nivel debe confirmarse individualmente. Solo después de completar
-        Nivel 1, Nivel 2 y Nivel 3 se habilitará la Etapa 5: Departamento y
+        Cada nivel debe confirmarse individualmente. Después de completar
+        Nivel 1 y Nivel 2 se habilitará la Etapa 5: Departamento y
         consolidación.
       </p>
     </div>
@@ -444,21 +433,15 @@ export function CreateSeguimientoForm({
       nivelesDiscipulado
         .map((nivel) => nivel.trim())
         .filter(
-          (nivel): nivel is "Nivel 1" | "Nivel 2" | "Nivel 3" =>
-            nivel === "Nivel 1" ||
-            nivel === "Nivel 2" ||
-            nivel === "Nivel 3"
+          (nivel): nivel is "Nivel 1" | "Nivel 2" =>
+            nivel === "Nivel 1" || nivel === "Nivel 2"
         )
     )
   )
 
   const nivelSiguiente = !nivelesCompletados.includes("Nivel 1")
     ? "Nivel 1"
-    : !nivelesCompletados.includes("Nivel 2")
-      ? "Nivel 2"
-      : !nivelesCompletados.includes("Nivel 3")
-        ? "Nivel 3"
-        : "Nivel 3"
+    : "Nivel 2"
 
   useEffect(() => {
     if (etapaBloqueada) {
@@ -516,7 +499,7 @@ export function CreateSeguimientoForm({
               Visita pendiente
             </p>
             <p className="mt-1 text-sm text-stone-600">
-              Esta persona tiene una visita programada para {" "}
+              Esta persona tiene una visita programada para{" "}
               {formatDate(visitaPendiente.fecha_programada)}.
             </p>
           </div>
@@ -539,9 +522,7 @@ export function CreateSeguimientoForm({
             </div>
 
             <div className="lg:col-span-2">
-              <FieldLabel htmlFor="observaciones">
-                Observaciones
-              </FieldLabel>
+              <FieldLabel htmlFor="observaciones">Observaciones</FieldLabel>
               <BaseTextarea
                 id="observaciones"
                 name="observaciones"
@@ -575,12 +556,8 @@ export function CreateSeguimientoForm({
 
       <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
         <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-semibold text-stone-900">
-            {meta.titulo}
-          </p>
-          <p className="mt-1 text-sm text-stone-600">
-            {meta.descripcion}
-          </p>
+          <p className="text-sm font-semibold text-stone-900">{meta.titulo}</p>
+          <p className="mt-1 text-sm text-stone-600">{meta.descripcion}</p>
           <p className="mt-1 text-xs text-amber-700">
             Rol: {getRolLabel(userRol)}
           </p>
@@ -689,9 +666,7 @@ export function CreateSeguimientoForm({
           />
 
           <div className="lg:col-span-2">
-            <FieldLabel htmlFor="observaciones">
-              Observaciones
-            </FieldLabel>
+            <FieldLabel htmlFor="observaciones">Observaciones</FieldLabel>
             <BaseTextarea
               id="observaciones"
               name="observaciones"
